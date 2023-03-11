@@ -1,0 +1,45 @@
+--out
+DECLARE
+    VPOUTPUT CLOB;
+BEGIN
+PD_APP_THR_DATA (PAPP_THR_ID    => 1064,
+                 PUSER_ID       => 1,
+                 POUTPUT        => VPOUTPUT);
+DBMS_OUTPUT.PUT_LINE(VPOUTPUT);
+END;
+
+--in
+DECLARE
+    vSTATUS CLOB;
+    vIMCS_MST CLOB := '{ "imcs_mst":[
+                                  {
+                                     "quest_id": 1010,
+                                     "doc_check_list_id":1011,
+                                     "receive_date":"01-09-2022",
+                                     "receive_time":"01-09-2022 10:30:00 AM",
+                                     "lc_po_no":"PO123456789",
+                                     "mat_prod_id":1001,
+                                     "vehicle_no":"VD213243",
+                                     "container_seal_no":"CN1234",
+                                     "grn_id":1001,
+                                     "notes":"Test" 
+                                  }
+                                ]
+                                }';
+    
+    
+    
+BEGIN
+    PD_IMCS  (pIMCS_MST       => vIMCS_MST,
+              pIMCS_DTL       IN CLOB,
+              pAQD_MSS      IN CLOB,
+              pAQD_DTL      IN CLOB, 
+              pUSER_ID       IN  NUMBER,
+              pSBU_ID       IN  NUMBER,
+              pIS_SUBMITTED  IN NUMBER, --0 not submitted, 1 submitted
+               --pAS_FLAG       IN NUMBER  DEFAULT 0, --0 before submitted, 1 after submitted
+              pIMCS_ID     in  out  NUMBER,
+              pSTATUS        => vSTATUS
+              );
+DBMS_OUTPUT.PUT_LINE(VPOUTPUT);
+END;

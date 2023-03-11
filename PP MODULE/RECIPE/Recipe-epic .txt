@@ -1,0 +1,322 @@
+Feature Name : Recipe Creation
+
+Design Link : https://www.figma.com/proto/8teIAtR1PAeCymNbvAqJfN/Recipe?node-id=5%3A328&starting-point-node-id=5%3A1782
+
+
+
+Description :  RECIPE CREATION is the fundamental configuration for production recipe. All types of material will be inputted here irrespective of FG types. it will be always inputted for 1 unit of that product. Bulk product id will be tagged with each recipe.
+
+From : WEB 
+
+Users :  PD executive, PD Head
+
+Constraint: 
+
+1. Recipe will be for only 1 unit (pc, bottle, ampule) of that type. 
+
+2. Approval of each recipe is needed.
+
+3. Qty of each material, can be inputted for 6 digit of decimal place
+
+4. If Overage percent is inputted by user, then “total qty with wastage” will be auto calculated
+
+5. If User inputs “total qty with wastage”, then Overage percent will be auto calculate
+
+
+
+User must be logged in
+
+User info available
+
+Check auth token for every request
+
+Check SBU_ID
+
+Tables/Data Source:
+
+PP_RECEIPE_MST
+
+PP_RECEIPE_DTL
+
+-----------------------------------------------------------
+API list
+
+
+LEFT PANEL- RECIPE NAME LIST LANDING MODE- 1st API
+API TYPE : GET
+API NAME : api/pp/get-recipe-list
+
+Response Fields :
+ASP.DISPLAY_CODE = PROD_CODE , ASP.DISPLAY_NAME = PROD_NAME
+Operational Fields:
+PRM.ID,  PRM.PROD_ID, ASP.DISPLAY_CODE  , ASP.DISPLAY_NAME ,  PRM.PROD_QTY, PRM.PROD_UOM, ACE.ELEMENT_NAME ,  PRM.PROD_WEIGHT, PRM.WEIGHT_UOM, WUOM.ELEMENT_NAME
+
+PARAMETER : NONE
+Table Name: PP_RECEIPE_MST = PRM
+ADM_SBU_PRODUCTS = ASP
+ADM_CODE_ELEMENTS = ACE
+ADM_CODE_ELEMENTS =  WUOM
+Relation :  ADM_SBU_PRODUCTS.PROD_ID = PP_RECEIPE_MST.PROD_ID
+ADM_CODE_ELEMENTS.ID = PP_RECEIPE_MST.PROD_UOM
+ADM_CODE_ELEMENTS.ID = PP_RECEIPE_MST.WEIGHT_UOM
+
+Special Condition: WHERE PP_RECEIPE_MST.STATUS = 1
+AND PP_RECEIPE_MST.SBU_ID = :pSBU_ID
+
+INSTRUCTION:
+
+QUERY :
+
+SELECT PRM.ID RECEIPE_MST_ID,  PRM.PROD_ID, ASP.DISPLAY_CODE AS PROD_CODE, ASP.DISPLAY_NAME AS PROD_NAME,  PRM.PROD_QTY, PRM.PROD_UOM, ACE.ELEMENT_NAME AS UOM_NAME ,
+PRM.PROD_WEIGHT, PRM.WEIGHT_UOM, WUOM.ELEMENT_NAME AS WEGT_UOM_NAME
+FROM PP_RECEIPE_MST PRM
+LEFT JOIN ADM_SBU_PRODUCTS ASP ON ASP.PROD_ID =  PRM.PROD_ID
+LEFT JOIN ADM_CODE_ELEMENTS ACE ON ACE.ID = PRM.PROD_UOM
+LEFT JOIN ADM_CODE_ELEMENTS WUOM ON WUOM.ID = PRM.WEIGHT_UOM
+WHERE PRM.STATUS = 1
+AND PRM.SBU_ID = :pSBU_ID
+
+
+
+LEFT PANEL- CLICK CREATE NEW THEN BULK PRODUCT NAME LIST AND HEADER UOM - 2nd API
+API TYPE : GET
+API NAME : api/pp/get-recipe-bulk-product
+
+Response Fields :
+ASP.DISPLAY_CODE = PROD_CODE, ASP.DISPLAY_NAME = PROD_NAME, GET_A_PRODUCT_ATTRIBUTES (AP.ID, 202) = GEN_NAME
+Operational Fields :
+AP.ID = PROD_ID, ASP.DISPLAY_CODE = PROD_CODE, ASP.DISPLAY_NAME = PROD_NAME, ASP.BASE_UOM, ACEE.ELEMENT_NAME = BASE_UOM_NAME,
+GET_A_PRODUCT_ATTRIBUTES (AP.ID, 202) = GEN_NAME
+
+PARAMETER : NONE
+Table Name:  ADM_PRODUCTS = AP
+ADM_SBU_PRODUCTS = ASP
+ADM_CODE_ELEMENTS = ACEE
+ADM_CODE_ELEMENTS = AC
+ADM_PROD_CATEGORY =  APC
+Relation :  ASP.PROD_ID = AP.ID
+                  ACEE.ID = ASP.BASE_UOM
+                   AC.ID = AP.PROD_TYPE
+                    APC.ID = AP.PROD_CAT
+
+Special Condition: WHERE AC.ID = 506
+AND ADM_SBU_PRODUCTS.SBU_ID = :pSBU_ID
+AND ADM_SBU_PRODUCTS.STATUS  = 1
+INSTRUCTION:
+
+QUERY :
+SELECT AP.ID PROD_ID, ASP.DISPLAY_CODE AS PROD_CODE, ASP.DISPLAY_NAME AS PROD_NAME, ASP.BASE_UOM, ACEE.ELEMENT_NAME AS BASE_UOM_NAME, APC.CAT_NAME,
+GET_A_PRODUCT_ATTRIBUTES (AP.ID, 202) GEN_NAME
+FROM ADM_PRODUCTS AP
+JOIN ADM_SBU_PRODUCTS ASP ON AP.ID=ASP.PROD_ID
+LEFT JOIN ADM_CODE_ELEMENTS ACEE ON ASP.BASE_UOM=ACEE.ID
+left JOIN ADM_CODE_ELEMENTS AC ON AP.PROD_TYPE=AC.ID
+LEFT JOIN ADM_PROD_CATEGORY APC ON APC.ID = AP.PROD_CAT
+WHERE AC.ID=506
+AND ASP.SBU_ID = :pSBU_ID
+AND ASP.STATUS  = 1
+
+
+
+MODAL- PRODUCT TYPE-CATEGORY - 3rd API
+API TYPE : GET
+API NAME : api/pp/get-recipe-prod-category
+
+Response Fields :
+CAT_NAME
+Operational Fields :
+ID, PARENT, DISPLAY_CODE, CAT_NAME, LVL, PROD_TYPE
+
+PARAMETER :
+Table Name:  ADM_PROD_CATEGORY
+
+Relation :
+
+Special Condition: WHERE PROD_TYPE IN (502 , 503)
+AND  STATUS  = 1
+AND LVL = 2
+
+INSTRUCTION:  CLICK THE FILTER ICON THEN SHOW CAT_NAME AND PASS PROD_TYPE
+
+QUERY :SELECT ID, PARENT, DISPLAY_CODE, CAT_NAME, LVL, PROD_TYPEFROM ADM_PROD_CATEGORYWHERE PROD_TYPE IN (502 , 503)AND  STATUS = 1AND LVL = 2
+
+
+
+
+MODAL- MATERIALS NAME LIST AND HEADER MATERIAL ID , MATERIAL NAME AND  UOM - 4th API
+API TYPE : GET
+API NAME : api/pp/get-recipe-mat-name
+
+Response Fields :
+ASP.DISPLAY_CODE = PROD_CODE, ASP.DISPLAY_NAME = PROD_NAME, APC.CAT_NAME = PROD_CAT_NAME, ACEE.ELEMENT_NAME = BASE_UOM_NAME
+Operational Fields :
+AP.ID PROD_ID, ASP.DISPLAY_CODE AS PROD_CODE, ASP.DISPLAY_NAME AS PROD_NAME,  AP.PROD_CAT, APC.CAT_NAME AS PROD_CAT_NAME, ASP.BASE_UOM, ACEE.ELEMENT_NAME AS BASE_UOM_NAME
+PARAMETER : SBU_ID
+Table Name:  ADM_PRODUCTS = AP
+ADM_SBU_PRODUCTS = ASP
+ADM_CODE_ELEMENTS = ACEE
+ADM_PROD_CATEGORY  = ApC
+Relation :  ASP.PROD_ID = AP.ID
+            ACEE.ID = ASP.BASE_UOM
+            ApC.ID = AP.PROD_CAT
+
+Special Condition: WHERE AP.PROD_TYPE IN (:pPROD_TYPE)
+                                        AND ASP.SBU_ID = :SBU_ID
+                                         AND ASP.STATUS  = 1
+
+INSTRUCTION:  FOR RIGHT SIDE HEADER
+1.  ApC.CAT_NAME = PROD_CAT_NAME
+2.  ASP.DISPLAY_NAME = MATERIAL_NAME
+3. ACEE.ELEMENT_NAME = BASE_UOM_NAME
+OTHERS FIELD IS USER INPUT FIELD
+
+QUERY : 
+    
+SELECT AP.ID PROD_ID, ASP.DISPLAY_CODE AS PROD_CODE, ASP.DISPLAY_NAME AS PROD_NAME, AP.PROD_CAT, APC.CAT_NAME AS PROD_CAT_NAME, ASP.BASE_UOM, ACEE.ELEMENT_NAME AS BASE_UOM_NAME  
+FROM ADM_PRODUCTS AP
+JOIN ADM_SBU_PRODUCTS ASP ON AP.ID = ASP.PROD_ID
+LEFT JOIN ADM_CODE_ELEMENTS ACEE ON ASP.BASE_UOM = ACEE.ID 
+LEFT JOIN ADM_PROD_CATEGORY APC ON AP.PROD_CAT = APC.ID
+WHERE AP.PROD_CAT IN (:pPROD_CAT) ---(250 , 251)   --- ID OF 3rd API
+AND ASP.SBU_ID = :SBU_ID
+AND ASP.STATUS  = 1
+
+
+MODAL- LANDING MODE DETAIL DATA ON RIGHT SIDE BODY - 5th API
+API TYPE : GET
+API NAME : api/pp/get-recipe-dtl/recipe_id
+
+Response Fields :
+ALL AS DESIGN.
+Operational Fields :
+PRD.ID = RECEIPE_DTL_ID, PRD.MAT_PROD_ID, ASP.DISPLAY_CODE =MAT_PROD_CODE, ASP.DISPLAY_NAME = MAT_PROD_NAME, AP.PROD_CAT, APC.CAT_NAME = PROD_CAT_NAME,
+PRD.REQUIRED_QTY, PRD.REQUIRED_UOM,  PRD_RU.ELEMENT_NAME = REQUIRED_UOM_NAME, PRD.OVERAGE, PRD.TOTAL_WITH_WASTAGE_QTY, PRD.SPEC
+
+PARAMETER : ID OF PP_RECEIPE_MST TAB. AND pSBU_ID.
+Table Name:  PP_RECEIPE_DTL = PRD
+                      PP_RECEIPE_MST = PRM
+                     ADM_SBU_PRODUCTS = ASP
+                     ADM_CODE_ELEMENTS = PRD_RU
+                     ADM_PRODUCTS  = AP
+                     ADM_PROD_CATEGORY = APC     
+Relation :  PRD.RECEIPE_ID = PRM.ID
+                 ASP.PROD_ID =  PRD.MAT_PROD_ID
+                 AP.ID = PRD.MAT_PROD_ID
+                PRD_RU.ID = PRD.REQUIRED_UOM
+                AP.PROD_CAT = APC.ID
+
+Special Condition:
+WHERE PRM.ID =:pPRM_ID
+AND PRM.STATUS = 1 AND PRD.STATUS = 1
+AND PRM.SBU_ID = :pSBU_ID
+INSTRUCTION:
+
+QUERY : 
+
+SELECT  PRD.ID RECEIPE_DTL_ID, PRD.MAT_PROD_ID, ASP.DISPLAY_CODE AS PROD_CODE, ASP.DISPLAY_NAME AS PROD_NAME, AP.PROD_CAT, APC.CAT_NAME AS PROD_CAT_NAME,
+        PRD.REQUIRED_QTY, PRD.REQUIRED_UOM, PRD_RU.ELEMENT_NAME AS REQUIRED_UOM_NAME, PRD.OVERAGE, PRD.TOTAL_WITH_WASTAGE_QTY, PRD.SPEC
+FROM PP_RECEIPE_DTL PRD 
+LEFT JOIN PP_RECEIPE_MST PRM   ON PRD.RECEIPE_ID = PRM.ID 
+LEFT JOIN ADM_SBU_PRODUCTS ASP ON ASP.PROD_ID =  PRD.MAT_PROD_ID
+LEFT JOIN ADM_PRODUCTS AP ON AP.ID = PRD.MAT_PROD_ID
+LEFT JOIN ADM_PROD_CATEGORY APC ON AP.PROD_CAT = APC.ID  
+LEFT JOIN ADM_CODE_ELEMENTS PRD_RU ON PRD_RU.ID = PRD.REQUIRED_UOM
+WHERE PRM.ID =:pPRM_ID  
+  AND PRM.STATUS = 1 
+  AND PRD.STATUS = 1 
+  AND PRM.SBU_ID = :pSBU_ID
+Special Instruction :
+
+Mat_prod_id will be unique for a single receipe
+
+Overage and total_with_wastage_qty will be calculative field-vice versatotal_with_wastage_qty=((required_qty*overage)/100) + required_qty
+
+
+---------
+CREATE-UPDATE RECIPE INFO
+
+API TYPE : POST
+API NAME : api/pp/create-update-recipe
+
+JERP_PP_UTIL.PP_RECEIPE Creation PROCEDURE
+
+JERP_PP_UTIL.PP_RECEIPE(
+pPR_MST              IN CLOB,
+pPR_DTL              IN CLOB,
+pUSER_ID             IN NUMBER,
+pIS_SUBMITTED        IN NUMBER, --0 not submitted, 1 submitted
+pPR_MST_ID           IN OUT NUMBER,
+pSTATUS              OUT CLOB
+)
+
+A. pPR_MST (JSON Array)
+Header = pr_mst
+
+OBJECT
+
+NUMBER('id');
+NUMBER('prm_sbu_id');   (not null)
+NUMBER('prm_prod_id');   (not null)
+NUMBER('prm_prod_qty');
+NUMBER('prm_prod_uom');
+NUMBER('prm_sort_order');
+VARCHAR ('prm_status');  (not null)
+NUMBER('prm_prod_weight');
+NUMBER('prm_weight_uom');
+
+B. pPR_DTL (JSON Array)
+Header = pr_dtl
+
+OBJECT
+
+NUMBER('id');
+NUMBER('prd_mat_prod_id');    (not null)
+NUMBER('prd_required_qty');
+NUMBER('prd_required_uom');
+NUMBER('prd_overage');
+NUMBER('prd_total_with_wastage_qty')
+NUMBER('prd_spec');
+NUMBER('prd_sort_order');
+VARCHAR ('prd_status');    (not null)
+
+C. pUSER_ID (Number)
+
+pUSER_ID number not null auth.user_id
+
+D. pIS_SUBMITTED (Number)
+
+pIS_SUBMITTED number not null (0 for draft, 1 for submit)
+
+E. pPR_MST_ID          IN OUT NUMBER,
+CREATE/INSERT MODE : pPR_MST_ID  WILL BE NULL
+UPDATE MODE :  pPR_MST_ID WILL COME FROM FRONT-END
+
+F. pSTATUS (Out CLOB)
+
+pSTATUS CLOB data return DB status against input data.
+
+---------------
+
+
+DELETE RECIPE DETAIL ROW
+
+API TYPE : PUT
+API NAME : api/pp/delete-recipe-detail/{recipe_id, detail_row_id}
+
+Response Fields : SUCCESS/FAILED
+
+Operational Fields :
+				STATUS
+
+
+PARAMETER : RECEIPE_ID, RECEIPE_DTL_ID
+
+Table Name:  PP_RECEIPE_DTL 
+
+Relation :  
+
+Special Condition:
+
+QUERY :
+
+UPDATE PP_RECEIPE_DTL SET STATUS=2 WHERE RECEIPE_ID =:RECEIPE_ID AND ID =:RECEIPE_DTL_ID

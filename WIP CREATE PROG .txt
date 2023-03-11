@@ -1,0 +1,226 @@
+--------------------------------------------------------------------------------------
+--   Created    : 28-JAN-2023
+--   Created by : MAHBUB
+--   Description: 
+--   UPDATED BY: 
+--   Revision History:
+--   Modified On Modified By Comments
+--   ----------- ----------- ----------------------------------------------
+
+--------------------------------------------------------------------------------------
+
+PROCEDURE PD_WIP_PROCESS_FINISHING(pWIP_MST_ID    IN  OUT  NUMBER,
+                                    pWIP_MST       IN  CLOB,
+                                    pWIP_PROCESS   IN  CLOB,
+                                    pSBU_ID        IN  NUMBER,
+                                    pUSER_ID       IN  NUMBER,
+                                    pSTATUS        OUT CLOB) IS
+
+vINPUT_OBJ  JSON_OBJECT_T := NEW JSON_OBJECT_T;
+vPROCESS_OBJ  JSON_OBJECT_T := NEW JSON_OBJECT_T;
+vINPUT_ARR  JSON_ARRAY_T;
+vOUTPUT_OBJ JSON_OBJECT_T := NEW JSON_OBJECT_T;
+
+vMESSAGE        VARCHAR2(4000);
+
+-----PP_WIP_MST-----
+
+vDISPLAY_CODE            VARCHAR2(30);
+vBATCH_ID                NUMBER;
+vPROD_ID                 NUMBER;
+vTOTAL_PROCESS_NO        NUMBER;
+vSORT_ORDER              NUMBER;
+
+vSBU_ID         NUMBER := pSBU_ID;
+
+BEGIN
+
+    IF NVL(pWIP_MST_ID,0) = 0 THEN
+
+        vINPUT_OBJ      := JSON_OBJECT_T.PARSE(pWIP_MST);
+        vINPUT_OBJ      := vINPUT_OBJ.GET_OBJECT('wip_mst');
+
+        DECLARE
+
+            --vWIP_MST_OBJ    JSON_OBJECT_T;
+
+        BEGIN
+
+            vBATCH_ID            := vINPUT_OBJ.GET_NUMBER('batch_id');
+            vPROD_ID             := vINPUT_OBJ.GET_NUMBER('prod_id');
+            vTOTAL_PROCESS_NO    := vINPUT_OBJ.GET_NUMBER('total_process_no');
+            
+            SELECT MAX(ID) INTO pWIP_MST_ID FROM PP_WIP_MST WHERE BATCH_ID = vBATCH_ID  AND PROD_ID = vPROD_ID;
+            
+            IF NVL(pWIP_MST_ID,0) = 0 THEN
+            
+                vSORT_ORDER          := DFN_FOR_SORT_ORDER_SERIAL ('PP_WIP_MST');
+                pWIP_MST_ID          := SEQ_PP_WIP_MST.NEXTVAL;
+                vDISPLAY_CODE        := JERP_UTIL.FD_DOC_NUMBER(pDOC_CODE => 'WIP', pSBU_ID =>vSBU_ID);
+            
+                INSERT INTO PP_WIP_MST(ID,DISPLAY_CODE,WIP_START_DATE,BATCH_ID,PROD_ID,TOTAL_PROCESS_NO,BATCH_STATUS,SORT_ORDER,CREATED_BY,CREATED_AT)
+                               VALUES (pWIP_MST_ID,vDISPLAY_CODE,SYSDATE,vBATCH_ID,vPROD_ID,vTOTAL_PROCESS_NO,10063,vSORT_ORDER,pUSER_ID,SYSDATE);
+            
+            END IF;
+            
+        EXCEPTION
+            WHEN OTHERS THEN
+
+            vOUTPUT_OBJ.PUT('response_code',400);
+            vMESSAGE := 'Error Code : '|| SQLCODE || ' Error Text Wip-Mst : ' || SQLERRM;
+            vOUTPUT_OBJ.PUT('message', vMESSAGE);
+            pSTATUS := vOUTPUT_OBJ.TO_CLOB;
+            ROLLBACK;
+            RETURN;
+
+        END;    
+       
+        vPROCESS_OBJ      := JSON_OBJECT_T.PARSE(pWIP_PROCESS);
+        vINPUT_ARR        := vPROCESS_OBJ.GET_ARRAY('wip_process');
+        
+        FOR I IN 0..vINPUT_ARR.GET_SIZE-1 LOOP
+        
+            DECLARE
+            
+                vWIP_PROCESS_OBJ     JSON_OBJECT_T;
+                vWIP_PROC_TIME_ARR   JSON_ARRAY_T;
+                
+                vWIP_PROCESS_ID         NUMBER;
+                vBATCH_DOC_ID           VARCHAR2(30);
+                vWIP_STAGE_ID           NUMBER;
+                vPROCESS_ID             NUMBER;
+                vSUB_PROCESS_ID         NUMBER;
+                --vPROCESS_START_DATE     DATE;
+                --vPROCESS_END_DATE       DATE;
+                --vPROCESS_STATUS         NUMBER;
+                --vTOTAL_PROCESS_HOUR     NUMBER;
+                --vQCOM_PERSON_ID         NUMBER;
+                --vPROD_PERSON_ID         NUMBER;
+                vPROD_LINE_ID           NUMBER;
+                vROOM_ID                NUMBER;
+                vIS_COMPLETED           VARCHAR2(1);
+                vIS_SKIPPED             VARCHAR2(1);
+
+
+            BEGIN
+            
+                vWIP_PROCESS_OBJ         := JSON_OBJECT_T(vINPUT_ARR.GET(I));
+                
+                vWIP_PROCESS_ID          := vWIP_PROCESS_OBJ.GET_NUMBER('id');
+                vWIP_STAGE_ID            := vWIP_PROCESS_OBJ.GET_NUMBER('wip_stage_id');
+                vPROCESS_ID              := vWIP_PROCESS_OBJ.GET_NUMBER('process_id');
+                vSUB_PROCESS_ID          := vWIP_PROCESS_OBJ.GET_NUMBER('sub_process_id');
+                --vPROCESS_START_DATE      := TO_DATE(vWIP_PROCESS_OBJ.GET_STRING('process_start_date'), 'dd-mm-rrrr');
+                --vPROCESS_END_DATE        := TO_DATE(vWIP_PROCESS_OBJ.GET_STRING('process_end_date'), 'dd-mm-rrrr');
+                --vPROCESS_STATUS          := vWIP_PROCESS_OBJ.GET_NUMBER('process_status');
+                --vTOTAL_PROCESS_HOUR      := vWIP_PROCESS_OBJ.GET_NUMBER('total_process_hour');
+                --vQCOM_PERSON_ID          := vWIP_PROCESS_OBJ.GET_NUMBER('qcom_person_id');
+                --vPROD_PERSON_ID          := vWIP_PROCESS_OBJ.GET_NUMBER('prod_person_id');
+                vIS_COMPLETED            := vWIP_PROCESS_OBJ.GET_STRING('is_completed');
+                vIS_SKIPPED              := vWIP_PROCESS_OBJ.GET_STRING('is_skipped');
+                vPROD_LINE_ID            := vWIP_PROCESS_OBJ.GET_NUMBER('prod_line_id');
+                
+                SELECT MAX(ID) INTO vWIP_PROCESS_ID FROM PP_WIP_PROCESS  WHERE PROCESS_ID = vPROCESS_ID AND (vSUB_PROCESS_ID IS NULL OR SUB_PROCESS_ID = vSUB_PROCESS_ID);
+                
+                IF NVL(vWIP_PROCESS_ID,0) = 0 THEN
+                
+                    SELECT BATCH_DOC_REQ_ID INTO vBATCH_DOC_ID FROM PP_PRODUCT_BATCH WHERE ID = vBATCH_ID;
+                
+                    SELECT ROOM_ID  INTO vROOM_ID FROM PP_PROD_LINE_ROOM
+                     WHERE LINE_BATCH_ID IN (SELECT LB.ID FROM PP_PROD_LINE_BATCH LB JOIN PP_PROD_LINE_ALLO LA ON LB.PROD_LINE_ID=LA.ID
+                                             WHERE LA.PRODUCTION_LINE_ID = vPROD_LINE_ID
+                                             AND LB.BATCH_ID       = vBATCH_ID
+                                             AND LB.PROCESS_ID     = vPROCESS_ID
+                                             AND (vSUB_PROCESS_ID IS NULL OR LB.SUB_PROCESS_ID = vSUB_PROCESS_ID)
+                                            );
+                    
+                    vSORT_ORDER              := DFN_FOR_SORT_ORDER_SERIAL ('PP_WIP_PROCESS');
+                    vWIP_PROCESS_ID          := SEQ_PP_WIP_PROCESS.NEXTVAL;
+                    
+                    INSERT INTO PP_WIP_PROCESS(ID,WIP_MST_ID,BATCH_DOC_ID,WIP_STAGE_ID,PROCESS_ID,SUB_PROCESS_ID,PROCESS_START_DATE,PROCESS_END_DATE,PROCESS_STATUS,
+                                               TOTAL_PROCESS_HOUR,QCOM_PERSON_ID,PROD_PERSON_ID,PROD_LINE_ID,ROOM_ID,IS_COMPLETED,IS_SKIPPED,SORT_ORDER,CREATED_BY,CREATED_AT)
+                                        VALUES(vWIP_PROCESS_ID,pWIP_MST_ID,vBATCH_DOC_ID,vWIP_STAGE_ID,vPROCESS_ID,vSUB_PROCESS_ID,NULL,NULL,NULL,
+                                               NULL,NULL,pUSER_ID,vPROD_LINE_ID,vROOM_ID,'N','N',vSORT_ORDER,pUSER_ID,SYSDATE);
+                    
+                END IF;
+
+                BEGIN
+                
+                    vWIP_PROC_TIME_ARR  := vWIP_PROCESS_OBJ.GET_ARRAY('wip_proc_time');
+                    
+                    FOR J IN 0..vWIP_PROC_TIME_ARR.GET_SIZE-1 LOOP
+                    
+                        DECLARE
+                            
+                            vWIP_PROC_TIME_OBJ      JSON_OBJECT_T;
+                            
+                            vPROC_TIME_ID           NUMBER;
+                            vTIMING_ACTION          NUMBER;
+                            vPROCESS_DATE           DATE;
+                            vSTART_TIME             TIMESTAMP(6);
+                            vEND_TIME               TIMESTAMP(6);
+                            vTOTAL_TIME_CONS        VARCHAR2(30);
+                            vREMARKS                VARCHAR2(200);
+                        
+                        BEGIN
+                        
+                            vWIP_PROC_TIME_OBJ      := JSON_OBJECT_T(vWIP_PROC_TIME_ARR.GET(J));
+                            
+                            vPROC_TIME_ID           := vWIP_PROC_TIME_OBJ.GET_NUMBER('id');
+                            vTIMING_ACTION          := vWIP_PROC_TIME_OBJ.GET_NUMBER('timing_action');
+                            vPROCESS_DATE           := TO_DATE(vWIP_PROC_TIME_OBJ.GET_STRING('process_date'), 'rrrr-mm-dd');
+                            vSTART_TIME             := TO_DATE(vWIP_PROC_TIME_OBJ.GET_STRING('start_time'),'dd-mm-rrrr hh24:mi:ss'); 
+                            vEND_TIME               := TO_DATE(vWIP_PROC_TIME_OBJ.GET_STRING('end_time'),'dd-mm-rrrr hh24:mi:ss');
+                            vTOTAL_TIME_CONS        := vWIP_PROC_TIME_OBJ.GET_STRING('total_time_cons');
+                            vREMARKS                := vWIP_PROC_TIME_OBJ.GET_STRING('remarks');
+                            
+                            vPROC_TIME_ID           := SEQ_PP_WIP_PROC_TIME.NEXTVAL;
+                            vSORT_ORDER             := DFN_FOR_SORT_ORDER_SERIAL ('PP_WIP_PROC_TIME');
+
+                            INSERT INTO PP_WIP_PROC_TIME(ID,WIP_PROCESS_ID,TIMING_ACTION,PROCESS_DATE,START_TIME,END_TIME,TOTAL_TIME_CONS,REMARKS,SORT_ORDER,CREATED_BY,CREATED_AT)
+                                                 VALUES (vPROC_TIME_ID,vWIP_PROCESS_ID,vTIMING_ACTION,vPROCESS_DATE,vSTART_TIME,vEND_TIME,vTOTAL_TIME_CONS,vREMARKS,vSORT_ORDER,pUSER_ID,SYSDATE);
+                        
+                        EXCEPTION
+                            WHEN OTHERS THEN
+                            vOUTPUT_OBJ.PUT('response_code',400);
+                            vMESSAGE := 'Error Code : '|| SQLCODE || ' Error Text Wip-Process-Time : ' || SQLERRM;
+                            vOUTPUT_OBJ.PUT('message', vMESSAGE);
+                            pSTATUS := vOUTPUT_OBJ.TO_CLOB;
+                            ROLLBACK;
+                            RETURN;
+
+                        END;
+                        
+                    END LOOP;
+                
+                EXCEPTION
+                    WHEN OTHERS THEN
+                    NULL;
+                END;
+            
+            EXCEPTION
+                WHEN OTHERS THEN
+
+                vOUTPUT_OBJ.PUT('response_code',400);
+                vMESSAGE := 'Error Code : '|| SQLCODE || ' Error Text Wip-Process : ' || SQLERRM;
+                vOUTPUT_OBJ.PUT('message', vMESSAGE);
+                pSTATUS := vOUTPUT_OBJ.TO_CLOB;
+                ROLLBACK;
+                RETURN;
+            END;
+        
+        END LOOP;
+        
+        vMESSAGE := 'Wip Process  Data Saved Successfully.';
+        vOUTPUT_OBJ.PUT('wip_mst_id',pWIP_MST_ID);
+        vOUTPUT_OBJ.PUT('prod_id',vPROD_ID);
+        vOUTPUT_OBJ.PUT('response_code',200);
+        vOUTPUT_OBJ.PUT('message', vMESSAGE);
+        pSTATUS := vOUTPUT_OBJ.TO_CLOB;
+
+    END IF;
+
+END PD_WIP_PROCESS_FINISHING;
+
+
+     

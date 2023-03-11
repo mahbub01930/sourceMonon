@@ -1,0 +1,397 @@
+Feature Name : INCOMING MATERIAL CHECKSHEET
+
+Description : Incoming material check sheet data will be enter here
+
+Design Link : https://www.figma.com/proto/USQjzIYB6rMbYJEAxOq6tJ/Incoming-Material-Check-Sheet?node-id=308%3A10&starting-point-node-id=1%3A2
+
+
+From : WEB 
+
+Users : Plant Gate security user will input the material check list.
+
+Constraint:
+
+1. IMCS DATA WILL BE SEPARATE FOR EACH PRODUCT
+2. IF USER INPUT THE PROPER CONTAINER/PACKING INFO HERE, THEN IT WILL BE TAGGED WITH THE GRN INFO
+3. 
+
+User must be logged in
+
+User info available
+
+Check auth token for every request
+
+Check SBU_ID
+
+
+Tables/Data Source:
+
+INC_MAT_CHECK_SHEET, INC_MAT_CONTAINER, ADM_QUESTIONER_MST, ADM_QUESTIONER_DTL
+
+
+
+------------------------------------------------------------------------------
+
+--LEFT PANEL LIST (LANDING MODE)-1ST API
+API TYPE : GET
+API NAME : api/mm/get-imcs-list
+
+Response Fields :  
+		MCS.DISPLAY_CODE, IMCS_DATE, POM.DISPLAY_CODE PO_NO, P.PROD_NAME MATERIAL_NAME
+	  
+Operational Fields: 
+		MCS.ID, MCS.DISPLAY_CODE, IMCS_DATE, POM.DISPLAY_CODE PO_NO, P.PROD_NAME MATERIAL_NAME
+         
+PARAMETER  : 
+
+Table Name:   	INC_MAT_CHECK_SHEET = MCS
+                MM_PUR_ORD_MST      = POM
+                ADM_PRODUCTS        = P
+
+			  
+Relation : 	  	
+            MCS.LC_PO_NO    = POM.ID
+            MCS.MAT_PROD_ID = P.ID;
+			  
+Filter by:  WHERE STATUS = 1 
+
+QUERY : 
+
+SELECT MCS.ID, MCS.DISPLAY_CODE, IMCS_DATE, POM.DISPLAY_CODE PO_NO, P.PROD_NAME MATERIAL_NAME 
+FROM INC_MAT_CHECK_SHEET MCS,MM_PUR_ORD_MST POM,ADM_PRODUCTS P
+WHERE MCS.LC_PO_NO=POM.ID
+AND MCS.MAT_PROD_ID=P.ID;
+
+
+
+------------------------------------------------------------------------------
+
+--RIGHT PANEL DATA (LANDING MODE)-AFTER CLICK THE LEFT PANEL ID-2ND API
+
+API TYPE : GET
+API NAME : api/mm/get-imcs-mst-info/pIMCS_ID
+
+Response Fields :  
+                    MCS.DISPLAY_CODE, MCS.IMCS_DATE, MCS.RECEIVE_DATE, MCS.RECEIVE_TIME, MCS.LC_PO_NO
+					, MCS.MAT_PROD_ID, P.PROD_NAME, MCS.VEHICLE_NO, MCS.CONTAINER_SEAL_NO, MCS.GRN_ID, MCS.NOTES
+	  
+Operational Fields: 
+                    MCS.ID, MCS.DISPLAY_CODE, MCS.IMCS_DATE, MCS.QUEST_ID, MCS.DOC_CHECK_LIST_ID, MCS.RECEIVE_DATE, MCS.RECEIVE_TIME, MCS.LC_PO_NO
+					, MCS.MAT_PROD_ID, P.PROD_NAME, MCS.VEHICLE_NO, MCS.CONTAINER_SEAL_NO, MCS.GRN_ID, MCS.NOTES
+         
+PARAMETER  :        MCS.ID = :pID (WILL COME FROM LEFT PANEL LIST)
+
+Table Name:   	    INC_MAT_CHECK_SHEET = MCS,
+                    ADM_PRODUCTS        = P
+
+			  
+Relation : 	  	
+                    MCS.MAT_PROD_ID =P.ID
+			  
+Filter by:  WHERE STATUS = 1 
+
+QUERY : 
+
+SELECT MCS.ID, MCS.DISPLAY_CODE, MCS.IMCS_DATE, MCS.QUEST_ID, MCS.DOC_CHECK_LIST_ID, MCS.RECEIVE_DATE, MCS.RECEIVE_TIME, MCS.LC_PO_NO, MCS.MAT_PROD_ID
+,P.PROD_NAME, MCS.VEHICLE_NO, MCS.CONTAINER_SEAL_NO, MCS.GRN_ID, MCS.NOTES
+from INC_MAT_CHECK_SHEET MCS,ADM_PRODUCTS P
+WHERE MCS.MAT_PROD_ID=P.ID
+AND MCS.ID=:pID;
+
+
+
+------------------------------------------------------------------------------
+
+--DOCUMENT CHECK LIST QUESTIONARE-3RD API
+API TYPE : GET
+API NAME : api/mm/get-document-chk-list
+
+Response Fields :  
+                    TG.DISPLAY_ORDER, TD.SL_NO, TD.QUESTION, TD.ANSWER_ARRAY, TD.ARRAY_SEPARATOR, TD.ANSWER_FIELD, TD.DEFAULT_ANSWER, TD.MANDATORY_FLAG
+	  
+Operational Fields: 
+                   TM.ID, TM.QTEMP_NAME, TM.DESCRIPTION, TM.TRN_TYPE, AC.CODE_NAME, TG.ID GROUP_ID, TG.GROUP_NAME, TG.DISPLAY_ORDER
+					, TD.ID DETAIL_ID, TD.SL_NO, TD.QUESTION, TD.ANSWER_ARRAY, TD.ARRAY_SEPARATOR, TD.ANSWER_FIELD, TD.DEFAULT_ANSWER, TD.MANDATORY_FLAG
+         
+PARAMETER  :        
+
+Table Name:   	    ADM_QUEST_TEMP_MST 	=TM
+                    ADM_CODES 			=AC
+					ADM_QUEST_TEMP_GROUP =TG
+					ADM_QUEST_TEMP_DTL 	=TD
+			  
+Relation : 	  	
+                    TM.TRN_TYPE=AC.ID
+					TM.ID=TG.QUEST_TEMP_ID
+					TM.ID=TD.QTEMP_ID AND TG.ID=TD.QUEST_GROUP_ID
+			  
+Filter by:  WHERE TM.ID=1010 AND TD.STATUS=1 ORDER BY TG.DISPLAY_ORDER,TD.SL_NO;
+
+QUERY : 
+
+SELECT TM.ID, TM.QTEMP_NAME, TM.DESCRIPTION, TM.TRN_TYPE, AC.CODE_NAME, TG.ID GROUP_ID, TG.GROUP_NAME, TG.DISPLAY_ORDER
+, TD.ID DETAIL_ID, TD.SL_NO, TD.QUESTION, TD.ANSWER_ARRAY, TD.ARRAY_SEPARATOR, TD.ANSWER_FIELD, TD.DEFAULT_ANSWER, TD.MANDATORY_FLAG
+FROM ADM_QUEST_TEMP_MST TM
+JOIN ADM_CODES AC ON TM.TRN_TYPE=AC.ID
+LEFT JOIN ADM_QUEST_TEMP_GROUP TG ON TM.ID=TG.QUEST_TEMP_ID
+LEFT JOIN ADM_QUEST_TEMP_DTL TD ON TM.ID=TD.QTEMP_ID AND TG.ID=TD.QUEST_GROUP_ID
+WHERE TM.ID=1010 AND TD.STATUS=1
+ORDER BY TG.DISPLAY_ORDER,TD.SL_NO;
+
+------------------------------------------------------------------------------
+
+---4TH API
+
+API TYPE : GET
+API NAME : api/mm/get-qsn-mst-dtl-info-data
+
+Response Fields :  
+		    AQTG.GROUP_NAME,AQTG.DISPLAY_ORDER, SL_NO, QUESTION, ANSWER_ARRAY, ARRAY_SEPARATOR, ANSWER_FIELD,ARRAY_ANSWER
+        
+	  
+Operational Fields: 
+                    QMST_ID,QD.ID QSN_DTL_ID,AQTG.GROUP_NAME,AQTG.DISPLAY_ORDER, SL_NO, QUESTION, ANSWER_ARRAY, ARRAY_SEPARATOR, ANSWER_FIELD,ARRAY_ANSWER 
+         
+PARAMETER  :        QM.REF_ID = :pIMCS_ID
+
+Table Name:   	   ADM_QUESTIONER_MST 	= QM
+		   ADM_QUESTIONER_DTL 	= QD
+		   ADM_QUEST_TEMP_GROUP = AQTG
+                    
+
+			  
+Relation :  	QD.QMST_ID = QM.ID  	
+		AQTG.ID	   = QD.QUEST_GROUP_ID
+                    
+			  
+Filter by:  QD.STATUS=1
+
+QUERY : 
+
+SELECT QMST_ID,QD.ID QSN_DTL_ID,AQTG.GROUP_NAME,AQTG.DISPLAY_ORDER, SL_NO, QUESTION, ANSWER_ARRAY, ARRAY_SEPARATOR, ANSWER_FIELD,ARRAY_ANSWER 
+FROM ADM_QUESTIONER_MST QM
+LEFT JOIN ADM_QUESTIONER_DTL QD ON QD.QMST_ID=QM.ID
+LEFT JOIN ADM_QUEST_TEMP_GROUP AQTG ON AQTG.ID=QD.QUEST_GROUP_ID
+WHERE QM.REF_ID=:pIMCS_ID
+AND QD.STATUS=1
+
+
+------------------------------------------------------------------------------
+
+--CONTAINER DETAIL LIST-MODAL DATA-AFTER CLICK THE BOTTOM LINK(PARAMETER WILL COME FROM LEFT PANEL ID)-5TH API
+API TYPE : GET
+API NAME : api/mm/get-container-dtl-info
+
+Response Fields :  
+                    MC.ID, IMCS_ID, SL_NO, CONTAINER_NO, CONTAINER_TYPE,CE.ELEMENT_NAME, VOLUME, UOM , IS_INTACT, REMARKS
+	  
+Operational Fields: 
+                    MC.ID, IMCS_ID, SL_NO, CONTAINER_NO, CONTAINER_TYPE,CE.ELEMENT_NAME, VOLUME, UOM , IS_INTACT, REMARKS
+         
+PARAMETER  :        MC.IMCS_ID = :pIMCS_ID (WILL COME FROM LEFT PANEL LIST)
+
+Table Name:   	    INC_MAT_CONTAINER = MC,
+                    ADM_CODE_ELEMENTS = CE
+			  
+Relation : 	  	
+                    MC.CONTAINER_TYPE = CE.ID
+			  
+Filter by:  WHERE STATUS = 1 
+
+QUERY : 
+
+SELECT MC.ID, IMCS_ID, SL_NO, CONTAINER_NO, CONTAINER_TYPE,CE.ELEMENT_NAME, VOLUME,JERP_ADM.FD_GET_BASE_UOM(CONTAINER_UOM) UOM , IS_INTACT, REMARKS 
+FROM INC_MAT_CONTAINER MC,ADM_CODE_ELEMENTS CE
+WHERE MC.CONTAINER_TYPE=CE.ID
+AND MC.IMCS_ID=:P_IMCS_ID;
+
+
+------------------------------------------------------------------------------
+
+--DROPDOWN LIST(CONTAINER TYPE)-6TH API
+
+API TYPE : GET
+API NAME : api/mm/get-container-type-list
+
+Response Fields :  
+                    ELEMENT_NAME
+	  
+Operational Fields: 
+                    ID,ELEMENT_NAME
+         
+PARAMETER  :        
+
+Table Name:   	    ADM_CODE_ELEMENTS
+			  
+Relation : 	  	
+
+Filter by:  WHERE STATUS = 1 AND CODE_KEY='CONTAINER_TYPE'
+
+QUERY : 
+
+SELECT ID,ELEMENT_NAME FROM ADM_CODE_ELEMENTS 
+WHERE   CODE_KEY='CONTAINER_TYPE'
+ORDER BY 1;
+
+
+------------------------------------------------------------------------------
+
+--DROPDOWN LIST(LC/PO NO)-7TH API
+
+API TYPE : GET
+API NAME : api/mm/get-lc-po-list
+
+Response Fields :  
+                    DISPLAY_VALUE
+	  
+Operational Fields: 
+                    ID, DISPLAY_VALUE
+         
+PARAMETER  :        
+
+Table Name:   	MM_PUR_ORD_MST      = POM
+                ADM_SBU_DEPARTMENT  = SD,
+                ADM_SUPPLIERS       = S
+          
+Relation : 	  	POM.DEPARTMENT_ID   = SD.ID
+                POM.SUPPLIER_ID     = S.ID
+
+Filter by:  WHERE STATUS = 1 
+
+QUERY : 
+
+SELECT POM.ID,'Order No: '|| DISPLAY_CODE||', Order Date: '||PO_DATE||', Dep:'||SD.DISPLAY_NAME||',Supplier: '||S.SUPPLIER_NAME DISPLAY_VALUE
+FROM MM_PUR_ORD_MST POM,ADM_SBU_DEPARTMENT SD,ADM_SUPPLIERS S
+WHERE POM.DEPARTMENT_ID = SD.ID
+AND POM.SUPPLIER_ID=S.ID;
+
+
+------------------------------------------------------------------------------
+
+--DROPDOWN LIST(MATERIAL LIST)-WILL BE FILTER AFTER SELECTING LC-PO NO-8TH API
+
+API TYPE : GET
+API NAME : api/mm/get-po-meterial-info
+
+Response Fields :  
+                    DISPLAY_VALUE
+	  
+Operational Fields: 
+                    ID, DISPLAY_VALUE
+         
+PARAMETER  :        PO_ID   = :pPO_ID  (will come from lo_po list)
+
+Table Name:   	MM_PUR_ORD_DTL = OD,
+                ADM_PRODUCTS   = P
+          
+Relation : 	  	OD.PROD_ID = P.ID 
+                
+
+Filter by:  WHERE STATUS = 1 
+
+QUERY : 
+
+SELECT OD.ID,'Product: '||p.PROD_NAME||', Quentity:'|| PO_QTY||', Total Cost: '||ITEM_TOTAL_COST DISPLAY_VALUE
+FROM MM_PUR_ORD_DTL OD,ADM_PRODUCTS P
+WHERE OD.PROD_ID=P.ID 
+AND PO_ID=:P_PO_ID
+
+--------------------------------------------------------------------------------
+
+--SAVE-UPDATE INCOMING MATERIAL CHECK SHEET (INC_MAT_CHECK_SHEET) DATA -9TH API
+API TYPE : POST
+API NAME : api/mm/insert-update-imcs-data
+
+JERP_ADM.PD_IMCS Creation PROCEDURE
+
+JERP_ADM.PD_IMCS  (pIMCS_MST       IN CLOB,
+                   pIMCS_DTL       IN CLOB,
+                   pAQD_MSS      IN CLOB,
+                   pAQD_DTL      IN CLOB, 
+                   pUSER_ID       IN  NUMBER,
+                   pSBU_ID       IN  NUMBER,
+                   pIS_SUBMITTED  IN NUMBER, --0 not submitted, 1 submitted
+                   pIMCS_ID     in  out  NUMBER,
+                   pSTATUS        OUT CLOB
+                  )
+
+
+A. pIMCS_MST (JSON OBJECT)
+Header = imcs_mst
+
+OBJECT
+ 
+
+
+GET_STRING('receive_date'),'dd-mm-rrrr'); 
+GET_STRING('receive_time'),'dd-mm-rrrr hh12:mi:ss am'); 
+GET_NUMBER('lc_po_no') (not null);
+GET_NUMBER('mat_prod_id') (not null);
+GET_STRING('vehicle_no');
+GET_STRING('container_seal_no');
+GET_STRING('notes');   
+
+
+B. pIMCS_DTL (JSON ARRAY)
+Header = imcs_dtl
+
+OBJECT
+ 
+GET_NUMBER('id');
+GET_NUMBER('sl_no');
+GET_NUMBER('container_no');
+GET_NUMBER('container_type');
+GET_NUMBER('volume');
+GET_NUMBER('container_uom');
+GET_STRING('is_intact');
+GET_STRING('remarks');
+
+
+C. pAQD_MSS (JSON ARRAY)
+Header = aqd_mst
+
+OBJECT
+ 
+GET_NUMBER('id');
+GET_NUMBER('sbu_id');
+GET_NUMBER('ref_id1');--NULL
+GET_NUMBER('qtemp_id');--QUESTION TEMPLATE ID
+
+
+D. pAQD_DTL (JSON ARRAY)  
+Header = adq_dtl
+
+OBJECT
+
+GET_NUMBER('id');--NULL
+GET_NUMBER('qmst_id');--NULL
+GET_STRING('array_answer');--USER ANSWER LIKE Y/N-YES/NO-MATCH/NOT MATCHED
+GET_STRING('answer_text');--NULL
+GET_STRING('comments');--NULL
+GET_STRING('question');--QUESTION TEMPLATE ER DETAIL ROW ID
+
+
+
+E. pUSER_ID (Number)
+ pUSER_ID number not null auth.user_id
+
+
+F. pSBU_ID (Number)
+
+    pSBU_ID number not null ()
+
+
+G. pIS_SUBMITTED (NUMBER) --0 not submitted, 1 submitted
+
+    pIS_SUBMITTED number not null ()
+
+H. pIMCS_ID    IN OUT NUMBER,
+    CREATE/INSERT MODE : pIMCS_ID  WILL BE NULL
+    UPDATE MODE :  pIMCS_ID WILL COME FROM FRONT-END
+
+
+I. pSTATUS (Out CLOB)
+
+pSTATUS CLOB data return DB status against input data.
+-------------------------------------------------------------
+

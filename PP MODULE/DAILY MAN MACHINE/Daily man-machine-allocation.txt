@@ -1,0 +1,620 @@
+Feature Name : Daily Man Machine Allocation 
+
+Description : Daily Man Machine Allocation data will be enter here
+
+Design Link : https://www.figma.com/proto/Y6cVddGpgUjKWiKHuAgVZU/Daily-Man-Machine-Allocation?node-id=18%3A1056&starting-point-node-id=1%3A2
+
+From : WEB 
+
+Users : 
+
+Constraint:
+
+User must be logged in
+
+User info available
+
+Check auth token for every request
+
+Check SBU_ID
+
+Tables/Data Source:
+
+PP_PROD_LINE_ALLO, PP_PROD_LINE_BATCH, PP_PROD_LINE_MAN, PP_PROD_LINE_ROOM
+ 
+------------------------------------------------------------------------------
+
+--LEFT PANEL LIST (LANDING MODE)-1ST API
+API TYPE : GET
+API NAME : api/pp/get-prod-line-allo-list
+
+Response Fields :  PPLA.ID, ASSIGN_DATE, APPI.PLANT_NAME, APPLI.PLANT_NAME
+	  
+Operational Fields: PPLA.ID, ASSIGN_DATE, PLANT_ID, APPI.PLANT_NAME, PRODUCTION_LINE_ID, APPLI.PLANT_NAME
+
+PARAMETER  : PPLA.SBU_ID = :pSBU_ID
+
+Table Name: PP_PROD_LINE_ALLO = PPLA
+            ADM_PLANT = APPI
+            ADM_PLANT = APPLI
+
+
+Relation : 	APPI.ID = PPLA.PLANT_ID
+            APPLI.ID = PPLA.PRODUCTION_LINE_ID
+    
+Filter by:  WHERE  PPLA.STATUS = 1 
+
+QUERY : 
+
+SELECT PPLA.ID,ASSIGN_DATE, PLANT_ID,APPI.PLANT_NAME,PRODUCTION_LINE_ID,APPLI.PLANT_NAME
+FROM PP_PROD_LINE_ALLO PPLA
+LEFT JOIN ADM_PLANT APPI ON APPI.ID = PPLA.PLANT_ID
+LEFT JOIN ADM_PLANT APPLI ON APPLI.ID = PPLA.PRODUCTION_LINE_ID
+WHERE PPLA.SBU_ID = :pSBU_ID;
+
+------------------------------------------------------------------------------
+
+----RIGHT PANEL DATA (LANDING MODE)-AFTER CLICK THE LEFT PANEL 1ST API) -2ND API 
+
+API TYPE : GET
+API NAME : api/pp/get-lab-prod-data/{pQSA_ID}
+
+Response Fields :  LINE_BATCH_ID, PROD_LINE_ID, BATCH_ID, PROCESS_ID, SUB_PROCESS_ID, PROD_ID, PROD_NAME, 
+                   LAST_COMPLETE_PROCESS, NEXT_PANDING_PROCESS, SUB_PROCESS_NAME, PROCESS, TOTAL_MACHINE, TOTAL_PERSON 
+
+	  
+Operational Fields: LINE_BATCH_ID, PROD_LINE_ID, BATCH_ID, PROCESS_ID, SUB_PROCESS_ID, PROD_ID, PROD_NAME, 
+    LAST_COMPLETE_PROCESS, NEXT_PANDING_PROCESS, SUB_PROCESS_NAME, PROCESS, TOTAL_MACHINE, TOTAL_PERSON 
+
+         
+PARAMETER  :       pQSA_ID (COME FROM 1ST API ->PPLB.ID ) 
+
+Table Name:   	   FUNCTION JERP_ADM.GET_DLY_MAN_MACIN_ALLO_DATA (pPROD_LINE_ID NUMBER)
+
+ 
+Relation : 	
+            
+
+Filter by:   
+
+GROUP BY: 
+
+QUERY : 
+
+SELECT * FROM JERP_ADM.GET_DLY_MAN_MACIN_ALLO_DATA (10004)
+
+
+------------------------------------------------------------------------------
+
+----RIGHT PANEL DATA (LANDING MODE)-AFTER CLICK THE RIGHT PANEL EDIT (2ND API) THEN SHOW OPERATORS EXISTING DATA) -3RD API 
+
+API TYPE : GET
+API NAME : api/pp/get-exist-operator-list/{pLINE_BATCH_ID}
+
+Response Fields :  PPLM.ID, LINE_BATCH_ID,PPLM.PERSON_ID,HE.EMP_NAME,HD.DESIG_NAME,HDE.DEPARTMENT_NAME , EXP_LEVEL 
+
+	  
+Operational Fields: PPLM.ID, LINE_BATCH_ID,PPLM.PERSON_ID,HE.EMP_NAME,HD.DESIG_NAME,HDE.DEPARTMENT_NAME , EXP_LEVEL 
+
+         
+PARAMETER  :       PPLM.LINE_BATCH_ID = :pLINE_BATCH_ID  (COME FROM 2ND API ->PPLB.ID ) 
+
+Table Name:   	   PP_PROD_LINE_MAN = PPLM
+                   HRM_EMPLOYEE = HE
+                   HRM_DESIGNATION = HD
+                   HRM_DEPARTMENT = HDE
+
+ 
+Relation : 	HE.ID = PPLM.PERSON_ID
+            HE.DESIGNATION_ID=HD.ID
+            HE.DEPARTMENT_ID=HDE.ID
+            
+
+Filter by:  WHERE STATUS = 1 
+
+GROUP BY: 
+
+QUERY : 
+
+SELECT PPLM.ID, LINE_BATCH_ID,PPLM.PERSON_ID,HE.EMP_NAME,HD.DESIG_NAME,HDE.DEPARTMENT_NAME , EXP_LEVEL 
+FROM PP_PROD_LINE_MAN PPLM
+LEFT JOIN HRM_EMPLOYEE HE ON HE.ID = PPLM.PERSON_ID
+LEFT JOIN HRM_DESIGNATION HD ON HE.DESIGNATION_ID=HD.ID
+LEFT JOIN HRM_DEPARTMENT HDE ON HE.DEPARTMENT_ID=HDE.ID
+WHERE PPLM.LINE_BATCH_ID = :pLINE_BATCH_ID;
+
+
+------------------------------------------------------------------------------
+
+----RIGHT PANEL DATA (LANDING MODE)-AFTER CLICK THE RIGHT PANEL EDIT(2ND API) THEN SHOW MACHINE EXISTING DATA) -4TH API 
+
+API TYPE : GET
+API NAME : api/pp/get-exist-machine-list/{pLINE_BATCH_ID}
+
+Response Fields :  PPLR.ID,LINE_BATCH_ID,ROOM_ID,AP.PLANT_NAME, MACHINE_ID,FAR.ASSET_NAME AS MACHINE_NAME, MOLD_ID,PMM.MOLD_NAME, STD_TIME 
+
+	  
+Operational Fields: PPLR.ID,LINE_BATCH_ID,ROOM_ID,AP.PLANT_NAME, MACHINE_ID,FAR.ASSET_NAME AS MACHINE_NAME, MOLD_ID,PMM.MOLD_NAME, STD_TIME 
+
+         
+PARAMETER  :       PPLR.LINE_BATCH_ID = :pLINE_BATCH_ID  (COME FROM 2ND API ->PPLB.ID ) 
+
+Table Name:   	   PP_PROD_LINE_ROOM = PPLR
+                   ADM_PLANT = AP
+                   PP_MOLD_MST = PMM
+                   FICO_ASSET_REGISTER = FAR
+
+ 
+Relation : 	AP.ID = PPLR.ROOM_ID
+            PMM.ID = PPLR.MOLD_ID
+            FAR.ID = PPLR.MACHINE_ID
+            
+
+Filter by:  WHERE STATUS = 1 
+
+GROUP BY: 
+
+QUERY : 
+
+SELECT PPLR.ID,LINE_BATCH_ID,ROOM_ID,AP.PLANT_NAME, MACHINE_ID,FAR.ASSET_NAME AS MACHINE_NAME, MOLD_ID,PMM.MOLD_NAME, STD_TIME 
+FROM PP_PROD_LINE_ROOM PPLR
+LEFT JOIN ADM_PLANT AP ON AP.ID = PPLR.ROOM_ID
+LEFT JOIN PP_MOLD_MST PMM ON PMM.ID = PPLR.MOLD_ID
+LEFT JOIN FICO_ASSET_REGISTER FAR ON FAR.ID = PPLR.MACHINE_ID
+WHERE PPLR.LINE_BATCH_ID = :pLINE_BATCH_ID;
+
+
+------------------------------------------------------------------------------
+
+----CREATE MODE RIGHT SIDE -5TH API 
+
+API TYPE : GET
+API NAME : api/pp/get-plant-list/{pSBU_ID}
+
+Response Fields :  PLANT_NAME 
+
+	  
+Operational Fields: ID,PLANT_NAME 
+
+         
+PARAMETER  :       SBU_ID = :pSBU_ID 
+
+Table Name:   	   ADM_PLANT
+
+ 
+Relation : 	
+
+Filter by:  WHERE PLANT_TYPE=183 AND LVL=3 AND STATUS = 1 
+
+GROUP BY: 
+
+QUERY : 
+
+SELECT ID,PLANT_NAME FROM ADM_PLANT
+WHERE PLANT_TYPE=183
+AND LVL=3
+AND SBU_ID = :pSBU_ID;
+
+------------------------------------------------------------------------------
+
+----CREATE MODE RIGHT SIDE -6TH API 
+
+API TYPE : GET
+API NAME : api/pp/get-production-list/{pPLANT_ID}/{pSBU_ID}
+
+Response Fields :  PLANT_NAME 
+
+Operational Fields: ID,PLANT_NAME 
+
+         
+PARAMETER  :    PARENT = :pPLANT_ID (COME FROM 5TH API)
+                SBU_ID = :pSBU_ID 
+
+Table Name:   	   ADM_PLANT
+
+ 
+Relation : 	
+
+Filter by:  WHERE PLANT_TYPE=183 AND LVL=4 AND STATUS = 1 
+
+GROUP BY: 
+
+QUERY : 
+
+SELECT ID,PLANT_NAME FROM ADM_PLANT
+WHERE PARENT = :pPLANT_ID --()
+AND PLANT_TYPE=183 AND LVL=4
+AND SBU_ID = :pSBU_ID;
+
+------------------------------------------------------------------------------
+
+----RIGHT SIDE AFTER CLICK ADD COLLECTION-7TH API 
+
+API TYPE : GET
+API NAME : api/pp/get-batch-list/{pPROD_LINE_ID}/{pSBU_ID}
+
+Response Fields :  PPB.ID,PPB.BATCH_NO,PPB.PROD_ID,AP.PROD_NAME  
+
+Operational Fields: PPB.ID,PPB.BATCH_NO,PPB.PROD_ID,AP.PROD_NAME 
+
+         
+PARAMETER  :    PPLC.PROD_LINE_ID = :pPROD_LINE_ID (COME FROM 6TH API)
+                SBU_ID = :pSBU_ID 
+
+Table Name: PP_PRODUCT_BATCH = PPB
+            ADM_PRODUCTS = AP
+            PP_PROD_LINE_CATEGORY = PPLC
+            ADM_CODE_ELEMENTS
+
+ 
+Relation : 	
+
+Filter by:  WHERE PPB.IS_TRANSFERED = 'N' 
+            AND PPB.TRANSFER_ID IS NULL 
+            AND NVL(PPB.TRANSFER_QTY,0) = 0 
+            AND STATUS = 1 
+            WHERE CODE_KEY='BATCH_STATUS'
+            AND ELEMENT_KEY IN ('EC719-02','EC719-03','EC719-04')
+
+GROUP BY: 
+
+QUERY : 
+
+SELECT PPB.ID,PPB.BATCH_NO,PPB.PROD_ID,AP.PROD_NAME 
+FROM PP_PRODUCT_BATCH PPB
+LEFT JOIN ADM_PRODUCTS AP ON AP.ID = PPB.PROD_ID
+LEFT JOIN PP_PROD_LINE_CATEGORY PPLC ON PPLC.PROD_CAT_ID = AP.PROD_SUB_CAT_ID
+WHERE PPLC.PROD_LINE_ID = :pPROD_LINE_ID --()
+AND PPB.IS_TRANSFERED = 'N'
+AND PPB.TRANSFER_ID IS NULL
+AND NVL(PPB.TRANSFER_QTY,0) = 0
+AND PPB.SBU_ID = :pSBU_ID
+AND PPB.BATCH_STATUS IN (SELECT ID FROM ADM_CODE_ELEMENTS
+                         WHERE CODE_KEY='BATCH_STATUS'
+                         AND ELEMENT_KEY IN ('EC719-02','EC719-03','EC719-04')
+                        );
+                        
+ ------------------------------------------------------------------------------
+
+----RIGHT SIDE AFTER CLICK ADD COLLECTION POP-UP WINDOWS LEFT SIDE -8TH API 
+
+API TYPE : GET
+API NAME : api/pp/get-process-sub-process-list/{pPROD_LINE_ID}/{pSBU_ID}
+
+Response Fields :  PPTP.PROCESS_ID,PPC.PROCESS_NAME,PPTP.SUB_PROCESS_ID,PPC1.PROCESS_NAME SUB_PROCESS  
+
+Operational Fields: PPTP.PROCESS_ID,PPC.PROCESS_NAME,PPTP.SUB_PROCESS_ID,PPC1.PROCESS_NAME SUB_PROCESS 
+
+         
+PARAMETER  :    pPROD_ID (COME FROM 7TH API)
+                pSBU_ID 
+
+Table Name: PROCEDURE PD_PROCESS_SUB_PROCESS_DATA (pPROD_ID NUMBER,pSBU_ID NUMBER,pOUTPUT OUT CLOB)
+
+ 
+Relation : 	
+
+Filter by:  
+
+GROUP BY: 
+
+QUERY : 
+
+DECLARE
+    VPOUTPUT CLOB;
+BEGIN
+PD_PROCESS_SUB_PROCESS_DATA (pPROD_ID    => 279,
+                             pSBU_ID  =>2,
+                             pOUTPUT        => VPOUTPUT);
+DBMS_OUTPUT.PUT_LINE(VPOUTPUT);
+END;
+
+
+
+------------------------------------------------------------------------------
+
+----AFTER CLICK ADD COLLECTION POP-UP WINDOWS  RIGHT CLICK OPERATOR -9TH API 
+
+API TYPE : GET
+API NAME : api/pp/get-operator-list/{pPROD_LINE_ID}/{pSBU_ID}
+
+Response Fields :  HE.ID,HE.EMP_ID,HE.EMP_NAME,HD.DESIG_NAME,HDE.DEPARTMENT_NAME 
+
+Operational Fields: HE.ID,HE.EMP_ID,HE.EMP_NAME,HD.DESIG_NAME,HDE.DEPARTMENT_NAME 
+
+         
+PARAMETER  :    AP.PARENT=:pPROD_LINE_ID (COME FROM 6TH API)
+                SBU_ID = :pSBU_ID 
+
+Table Name: PP_PROD_ROOM_MAN = PPRM
+            ADM_PLANT = AP
+            HRM_EMPLOYEE = HE
+            HRM_DESIGNATION = HD
+            HRM_DEPARTMENT = HDE
+
+ 
+Relation : 	AP.ID = PPRM.ROOM_ID
+            HE.ID = PPRM.EMP_ID
+            HE.DESIGNATION_ID=HD.ID
+            HE.DEPARTMENT_ID=HDE.ID
+
+Filter by: WHERE HE.DESIGNATION_ID IS NOT NULL 
+           AND HE.DEPARTMENT_ID IS NOT NULL
+           AND PPRM.STATUS = 1
+
+GROUP BY: 
+
+QUERY : 
+
+SELECT HE.ID,HE.EMP_ID,HE.EMP_NAME,HD.DESIG_NAME,HDE.DEPARTMENT_NAME 
+FROM PP_PROD_ROOM_MAN PPRM
+LEFT JOIN ADM_PLANT AP ON AP.ID = PPRM.ROOM_ID
+LEFT JOIN HRM_EMPLOYEE HE ON HE.ID = PPRM.EMP_ID
+LEFT JOIN HRM_DESIGNATION HD ON HE.DESIGNATION_ID=HD.ID
+LEFT JOIN HRM_DEPARTMENT HDE ON HE.DEPARTMENT_ID=HDE.ID
+WHERE AP.PARENT=:pPROD_LINE_ID
+AND  PPRM.SBU_ID = :pSBU_ID
+AND HE.DESIGNATION_ID IS NOT NULL
+AND HE.DEPARTMENT_ID IS NOT NULL;
+
+------------------------------------------------------------------------------
+
+----AFTER CLICK ADD COLLECTION POP-UP WINDOWS  RIGHT CLICK OPERATOR   -10TH API 
+
+API TYPE : GET
+API NAME : api/pp/get-all-operator-list/{pPROD_LINE_ID}/{pSBU_ID}
+
+Response Fields :  
+		HE.EMP_NAME, HD.DESIG_NAME, HDE.DEPARTMENT_NAME
+	  
+Operational Fields: 
+		HE.EMP_ID, HE.EMP_NAME, HD.DESIG_NAME, HDE.DEPARTMENT_NAME
+         
+PARAMETER  : 
+
+Table Name:   	HRM_EMPLOYEE    =HE
+				HRM_DESIGNATION =HD
+				HRM_DEPARTMENT  =HDE
+			  
+Relation : 	  	HE.DESIGNATION_ID=HD.ID
+				HE.DEPARTMENT_ID=HDE.ID
+			  
+Filter by:  WHERE HE.DESIGNATION_ID IS NOT NULL 
+            AND HE.DEPARTMENT_ID IS NOT NULL
+            AND PPRM.STATUS = 1
+
+QUERY :
+
+SELECT HE.EMP_ID, HE.EMP_NAME, HD.DESIG_NAME, HDE.DEPARTMENT_NAME 
+FROM HRM_EMPLOYEE HE 
+JOIN HRM_DESIGNATION HD ON HE.DESIGNATION_ID=HD.ID
+JOIN HRM_DEPARTMENT HDE ON HE.DEPARTMENT_ID=HDE.ID
+WHERE  HE.DESIGNATION_ID IS NOT NULL
+AND HE.DEPARTMENT_ID IS NOT NULL;
+
+------------------------------------------------------------------------------
+
+----AFTER CLICK ADD COLLECTION POP-UP WINDOWS  RIGHT CLICK MACHINE AND SELECT ROOM  -11TH API 
+
+API TYPE : GET
+API NAME : api/pp/get-room-list/{pPLANT_LINE_ID}/{pSBU_ID}
+
+Response Fields :  PLANT_NAME AS ROOM_NAME
+
+Operational Fields: ID,PLANT_NAME AS ROOM_NAME 
+
+         
+PARAMETER  :    PARENT = :pPLANT_LINE_ID (COME FROM 6TH API)
+                SBU_ID = :pSBU_ID 
+
+Table Name:  ADM_PLANT 
+
+ 
+Relation : 	
+
+Filter by: WHERE  PPRM.STATUS = 1
+
+GROUP BY: 
+
+QUERY : 
+
+SELECT ID,PLANT_NAME AS ROOM_NAME FROM ADM_PLANT
+WHERE PARENT = :pPLANT_LINE_ID --()
+AND SBU_ID  = :pSBU_ID;
+
+------------------------------------------------------------------------------
+
+----AFTER CLICK ADD COLLECTION POP-UP WINDOWS  RIGHT CLICK MACHINE AND SELECT ROOM  -12TH API 
+
+API TYPE : GET
+API NAME : api/pp/get-machine-list/{pROOM_ID}/{pSBU_ID}
+
+Response Fields :  FAR.ASSET_NAME AS MACHINE_NAME
+
+Operational Fields: PPRM.MACHINE_ID,FAR.ASSET_NAME AS MACHINE_NAME
+
+         
+PARAMETER  :    ROOM_ID = :pROOM_ID (COME FROM 11TH API)
+                SBU_ID = :pSBU_ID 
+
+Table Name:  PP_PROD_ROOM_MACHINE = PPRM 
+             FICO_ASSET_REGISTER = FAR
+
+ 
+Relation : 	FAR.ID = PPRM.MACHINE_ID
+
+Filter by: WHERE  PPRM.STATUS = 1
+
+GROUP BY: 
+
+QUERY : 
+
+SELECT PPRM.MACHINE_ID,FAR.ASSET_NAME AS MACHINE_NAME
+FROM PP_PROD_ROOM_MACHINE PPRM
+LEFT JOIN FICO_ASSET_REGISTER FAR ON FAR.ID = PPRM.MACHINE_ID
+WHERE ROOM_ID = :pROOM_ID
+AND PPRM.SBU_ID = :pSBU_ID;
+
+
+------------------------------------------------------------------------------
+
+----AFTER CLICK ADD COLLECTION POP-UP WINDOWS  RIGHT CLICK MACHINE AND SELECT ROOM  -13TH API 
+
+API TYPE : GET
+API NAME : api/pp/get-mold-list/{pMACHINE_ID}
+
+Response Fields :  PMM.MOLD_NAME
+
+Operational Fields: PPRM.MOLD_ID,PMM.MOLD_NAME 
+
+         
+PARAMETER  :    ROOM_MACHINE_ID = :pMACHINE_ID; (COME FROM 12TH API)
+               
+
+Table Name:  PP_PROD_ROOM_MOLD = PPRM 
+             PP_MOLD_MST = PMM
+
+Relation : 	PMM.ID = PPRM.MOLD_ID
+
+Filter by: WHERE  PPRM.STATUS = 1
+
+GROUP BY: 
+
+QUERY : 
+
+SELECT PPRM.MOLD_ID,PMM.MOLD_NAME 
+FROM PP_PROD_ROOM_MOLD PPRM
+LEFT JOIN PP_MOLD_MST PMM ON PMM.ID = PPRM.MOLD_ID
+WHERE ROOM_MACHINE_ID = :pMACHINE_ID;
+
+--------------------------------------------
+
+--- CREATE-UPDATE, DRAFT, SUBMIT - Daily Man Machine -14TH API
+URL = api/pp/crud-daily-man-machin-allo
+Method = Post
+
+JERP_ADM.PD_DAILY_MAN_MACHINE_ALLO Creation PROCEDURE
+
+JERP_ADM.PD_DAILY_MAN_MACHINE_ALLO (pPROD_LINE_ALO_ID   IN OUT NUMBER,
+                                    pPROD_LINE_ALLO     IN CLOB,
+                                    pPROD_LINE_BATCH    IN CLOB,
+                                    pUSER_ID            IN NUMBER,
+                                    pSTATUS             OUT CLOB
+                                   )
+
+Parameters :
+
+A. pPROD_LINE_ALO_ID          IN OUT NUMBER,
+CREATE/INSERT MODE : pPROD_LINE_ALO_ID  WILL BE NULL
+UPDATE MODE :  pPROD_LINE_ALO_ID WILL COME FROM FRONT-END
+
+B. pPROD_LINE_ALLO (JSON Array)
+
+Header = prod_line_allo
+
+OBJECT
+
+sbu_id                      NUMBER; 
+assign_date                 STRING;
+plant_id                    NUMBER; 
+production_line_id          NUMBER; 
+
+
+
+C. pPROD_LINE_BATCH (JSON Array)
+
+Header = prod_line_batch
+
+OBJECT
+
+id                      NUMBER;
+batch_id                NUMBER;  
+process_id              NUMBER;  
+sub_process_id          NUMBER;  
+
+'prod_line_man' (new object for 'prod_line_batch')
+id              NUMBER;
+person_id       NUMBER; 
+exp_level       NUMBER;
+'prod_line_room' (new object for 'prod_line_batch')
+id              NUMBER;
+room_id         NUMBER;
+machine_id      NUMBER;
+mold_id         NUMBER;
+std_time        NUMBER;
+
+D. pUSER_ID (Number)
+
+pUSER_ID number not null auth.user_id
+
+E. pSTATUS (Out CLOB)
+
+pSTATUS CLOB data return DB status against input data.
+
+
+--------------CALL 
+
+DECLARE
+    vSTATUS CLOB;
+    vMst number:=null; 
+    vPROD_LINE_ALLO CLOB := '{ "prod_line_allo":[
+                                  {
+                                     "sbu_id":2,
+                                     "assign_date":"08-nov-2022",
+                                     "plant_id":1004,
+                                     "production_line_id":1122
+                                  }
+                                ]
+                                }';
+                                
+    vPROD_LINE_BATCH CLOB :=  '{
+                               "prod_line_batch":[
+                                  {
+                                     "id":null,
+                                     "batch_id":10084,
+                                     "process_id":10305,
+                                     "sub_process_id":10306,
+                                     "prod_line_man":[
+                                        {
+                                           "id":null,
+                                           "person_id":260,
+                                           "exp_level":1
+                                        },
+                                        {
+                                           "id":null,
+                                           "person_id":261,
+                                           "exp_level":2
+                                        }
+                                     ],
+                                     "prod_line_room":[
+                                        {
+                                           "id":null,
+                                           "room_id":1101,
+                                           "machine_id":1002,
+                                           "mold_id":10000,
+                                           "std_time":1
+                                        },
+                                        {
+                                           "id":null,
+                                           "room_id":1119,
+                                           "machine_id":1103,
+                                           "mold_id":10001,
+                                           "std_time":2
+                                        }
+                                     ]
+                                  }
+                               ]
+                            }';          
+BEGIN
+    JERP_ADM.PD_DAILY_MAN_MACHINE_ALLO(pPROD_LINE_ALO_ID    =>vMst,
+                                       pPROD_LINE_ALLO       =>vPROD_LINE_ALLO,
+                                       pPROD_LINE_BATCH       =>vPROD_LINE_BATCH,
+                                       pUSER_ID        =>1,
+                                       pSTATUS         => vSTATUS
+                                    );
+DBMS_OUTPUT.PUT_LINE(vSTATUS);
+
+END;
+
+--------------------------------
+

@@ -1,0 +1,265 @@
+Feature Name : MOLD DETAILS
+
+Description : Mold Details data will be enter here
+
+Design Link : https://www.figma.com/proto/GMqlSdfcDOaH91EYUbMBFv/Mold-Details?node-id=3%3A3&scaling=min-zoom&page-id=0%3A1&starting-point-node-id=3%3A3
+
+From : WEB 
+
+Users : Production User can place the requisition for single batch of single product but multiple material types
+
+Constraint:
+
+User must be logged in
+
+User info available
+
+Check auth token for every request
+
+Check SBU_ID
+
+Tables/Data Source:
+
+PP_MOLD_MST, PP_MOLD_HISTORY
+
+------------------------------------------------------------------------------
+
+--LEFT PANEL LIST (LANDING MODE)-1ST API
+API TYPE : GET
+API NAME : api/pp/get-mold-list
+
+Response Fields :  
+		DISPLAY_CODE, MOLD_NAME, TOTAL_CAVITY, RUNNING_CAVITY, CYCLE_TIME 
+	  
+Operational Fields: 
+		ID, DISPLAY_CODE, MOLD_NAME, TOTAL_CAVITY, RUNNING_CAVITY, CYCLE_TIME 
+         
+PARAMETER  : 
+
+Table Name:   	PP_MOLD_MST
+
+Relation : 	  	
+
+Filter by:  WHERE STATUS = 1 
+
+QUERY : 
+
+SELECT ID, DISPLAY_CODE, MOLD_NAME, TOTAL_CAVITY, RUNNING_CAVITY, CYCLE_TIME 
+FROM PP_MOLD_MST WHERE STATUS = 1;
+
+------------------------------------------------------------------------------
+
+--RIGHT PANEL DATA (LANDING MODE)-AFTER CLICK THE LEFT PANEL ID-2ND API
+API TYPE : GET
+API NAME : api/pp/get-mold-dtl-info/{pMOLD_ID}
+
+Response Fields :  
+                    CE.ELEMENT_NAME, EVENT_QUANTITY, PREVIOUS_QUANTITY,EVENT_DECLARE,
+                    EVENT_CONF_DATE, EVENT_REMARKS,RESPONSIBLE_PERSON_NAME 
+	  
+Operational Fields: 
+                    MH.ID, MOLD_ID, EVENT_TYPE,CE.ELEMENT_NAME, EVENT_QUANTITY, PREVIOUS_QUANTITY, EVENT_DECLARE_BY,EVENT_DECLARE,
+                    EVENT_CONF_DATE, EVENT_REMARKS, RESPONSIBLE_PERSON,RESPONSIBLE_PERSON_NAME 
+         
+PARAMETER  :        MH.MOLD_ID=:pMOLD_ID (WILL COME FROM LEFT PANEL LIST)
+
+Table Name:   	    PP_MOLD_HISTORY     = MH
+                    ADM_CODE_ELEMENTS   = CE
+                    ADM_USERS           =U
+                    ADM_USERS           =RP
+                    
+
+			  
+Relation : 	  	
+            MH.EVENT_TYPE           = CE.ID
+            MH.EVENT_DECLARE_BY     = U.ID
+            MH.RESPONSIBLE_PERSON   = RP.ID
+			  
+Filter by:  WHERE  STATUS = 1 
+
+QUERY : 
+
+SELECT MH.ID, MOLD_ID, EVENT_TYPE,CE.ELEMENT_NAME, EVENT_QUANTITY, PREVIOUS_QUANTITY, EVENT_DECLARE_BY,U.NAME EVENT_DECLARE,
+EVENT_CONF_DATE, EVENT_REMARKS, RESPONSIBLE_PERSON,RP.NAME RESPONSIBLE_PERSON_NAME 
+FROM PP_MOLD_HISTORY MH
+JOIN ADM_CODE_ELEMENTS CE ON MH.EVENT_TYPE=CE.ID
+LEFT JOIN ADM_USERS U ON MH.EVENT_DECLARE_BY=U.ID
+LEFT JOIN ADM_USERS RP ON MH.RESPONSIBLE_PERSON=RP.ID
+WHERE MH.MOLD_ID=:pMOLD_ID;
+
+------------------------------------------------------------------------------
+
+--DROPDOWN LIST(EVENT TYPE)-3RD API
+
+API TYPE : GET
+API NAME : api/pp/get-event-type-list
+
+Response Fields :  
+                    ELEMENT_NAME
+	  
+Operational Fields: 
+                    ID,ELEMENT_NAME
+         
+PARAMETER  :        
+
+Table Name:   	    ADM_CODE_ELEMENTS
+			  
+Relation : 	  	
+
+Filter by:  WHERE STATUS = 1 AND CODE_KEY='MOLD_EVENT_TYPE'
+
+QUERY : 
+
+SELECT ID,ELEMENT_NAME FROM ADM_CODE_ELEMENTS 
+WHERE CODE_KEY='MOLD_EVENT_TYPE';
+
+
+------------------------------------------------------------------------------
+
+--DROPDOWN LIST(DECLARE BY  -->(USER LIST) )-4TH API
+
+API TYPE : GET
+API NAME : api/pp/get-user-list
+
+Response Fields :  
+                    NAME
+	  
+Operational Fields: 
+                    ID,NAME
+
+PARAMETER  :        
+
+Table Name:   	    ADM_USERS
+
+Relation : 	  	
+
+Filter by:  WHERE STATUS = 1 
+
+QUERY : 
+
+SELECT ID,SEARCH_KEYWORDS NAME FROM ADM_USERS;
+
+
+--------------------------------------------------------------------------------
+
+--SAVE MOLD DETAILS () DATA -5TH API
+API TYPE : POST
+API NAME : api/pp/insert-update-mold-data
+
+JERP_ADM.PD_MOLD Creation PROCEDURE
+
+JERP_ADM.PD_MOLD  (pMOLD_MST     IN  CLOB,
+                   pMOLD_DTL     IN  CLOB,
+                   pUSER_ID      IN  NUMBER,
+                   pMOLD_ID      IN  OUT  NUMBER,
+                   pSTATUS       OUT CLOB
+                  )
+
+
+A. pMOLD_MST (JSON OBJECT)
+Header = mold_mst
+
+OBJECT
+
+GET_STRING('mold_name');
+GET_NUMBER('total_cavity');
+GET_NUMBER('running_cavity');
+GET_NUMBER('cycle_time');  
+
+
+B. pMOLD_DTL (JSON ARRAY)
+Header = mold_dtl
+
+OBJECT
+ 
+GET_NUMBER('id');
+GET_NUMBER('event_type');
+GET_NUMBER('event_quantity');
+GET_NUMBER('previous_quantity');
+GET_NUMBER('event_declare_by');
+GET_STRING('event_conf_date'), 'dd-mm-rrrr');
+GET_STRING('event_remarks');
+GET_NUMBER('responsible_person');
+GET_NUMBER('sort_order');
+
+
+C. pUSER_ID (Number)
+ pUSER_ID number not null auth.user_id
+
+
+D. pMOLD_ID    IN OUT NUMBER,
+    CREATE/INSERT MODE : pIMCS_ID  WILL BE NULL
+    UPDATE MODE :  pIMCS_ID WILL COME FROM FRONT-END
+
+
+E. pSTATUS (Out CLOB)
+
+pSTATUS CLOB data return DB status against input data.
+
+----------------------------------------------
+
+Procedure calling example :
+
+
+DECLARE
+    vSTATUS CLOB;
+    vMst number:=10114; 
+    vMOLD_MST CLOB := '{ "mold_mst":[
+                                  {
+                                     "mold_name":"AD (0.5ml) Plunger - 9",
+                                     "total_cavity":30,
+                                     "running_cavity":25,
+                                     "cycle_time":20
+                                  }
+                                ]
+                                }';
+                                
+    vMOLD_DTL CLOB :=  '{ "mold_dtl":[
+                                  {
+                                     "id":7,
+                                     "event_type":7441,
+                                     "event_quantity":7,
+                                     "previous_quantity":6,
+                                     "event_declare_by": 2088,
+                                     "event_conf_date":"13-09-2022",
+                                     "event_remarks":"NEW U",
+                                     "responsible_person":2109,
+                                     "sort_order":1
+                                  },
+                                   {
+                                     "id":8,
+                                     "event_type":7441,
+                                     "event_quantity":10,
+                                     "previous_quantity":12,
+                                     "event_declare_by": 2089,
+                                     "event_conf_date":"13-09-2022",
+                                     "event_remarks":"NEW-U-2",
+                                     "responsible_person":2109,
+                                     "sort_order":2
+                                  },
+                                   {
+                                     "id":null,
+                                     "event_type":7442,
+                                     "event_quantity":15,
+                                     "previous_quantity":12,
+                                     "event_declare_by": 2088,
+                                     "event_conf_date":"13-09-2022",
+                                     "event_remarks":"NEW-U-2",
+                                     "responsible_person":2109,
+                                     "sort_order":3
+                                  }
+                                ] 
+                                }';  
+                                
+    
+BEGIN
+    PD_MOLD  (pMOLD_MST       => vMOLD_MST,
+              pMOLD_DTL       =>vMOLD_DTL,
+              pUSER_ID        =>1,
+              pMOLD_ID        =>vMst,
+              pSTATUS         => vSTATUS
+              );
+DBMS_OUTPUT.PUT_LINE(vSTATUS);
+END;
+
+

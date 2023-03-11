@@ -1,0 +1,64 @@
+API TYPE : POST
+API NAME : api/pp/crud-qc-ipqc-test-data
+
+JERP_PP_UTIL.PP_QC_IPQC_TEST_DATA Creation PROCEDURE
+
+JERP_PP_UTIL.PP_QC_IPQC_TEST_DATA(pQC_IPQC_TEST         =>vQC_IPQC_TEST,
+                          pQC_IPQC_TEST_ID      =>vMst ,
+                          pSBU_ID                =>2,
+                          pUSER_ID               =>1,
+                          pSTATUS              =>vSTATUS
+                      );
+
+
+A. pQC_IPQC_TEST (JSON OBJECT)
+Header = qc_ipqc_test
+
+OBJECT
+
+GET_NUMBER('test_department');
+GET_STRING('test_name');
+GET_NUMBER('test_measure');
+GET_NUMBER('test_type');
+GET_NUMBER('uom');
+
+B. pQC_IPQC_TEST_ID    IN OUT NUMBER,
+    CREATE/INSERT MODE : pQC_IPQC_TEST_ID  WILL BE NULL
+    UPDATE MODE :  pQC_IPQC_TEST_ID WILL COME FROM FRONT-END
+
+C. pSBU_ID (Number)
+
+D. pUSER_ID (Number)
+ pUSER_ID number not null auth.user_id
+
+
+E. pSTATUS (Out CLOB)
+
+pSTATUS CLOB data return DB status against input data.
+
+-------------------------------------------------------------
+
+----call
+
+DECLARE
+    vSTATUS CLOB;
+    vMst number:=null; 
+    vQC_IPQC_TEST CLOB := '{ "qc_ipqc_test":
+                                  {
+                                     "test_department":34,
+                                     "test_name":"Type of 3",
+                                     "test_measure":7752,
+                                     "test_type":7153,
+                                     "uom":538
+                                  }
+                                }';
+                                 
+BEGIN
+  PP_QC_IPQC_TEST_DATA(pQC_IPQC_TEST         =>vQC_IPQC_TEST,
+                          pQC_IPQC_TEST_ID      =>vMst ,
+                          pSBU_ID                =>2,
+                          pUSER_ID               =>1,
+                          pSTATUS              =>vSTATUS
+                      );
+DBMS_OUTPUT.PUT_LINE(vSTATUS);
+END;

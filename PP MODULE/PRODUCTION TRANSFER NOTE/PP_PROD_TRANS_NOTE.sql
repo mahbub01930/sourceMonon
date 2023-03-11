@@ -1,0 +1,131 @@
+
+---1--RECONCILIATION PROD LIST
+SELECT PB.ID BATCH_ID,PB.PROD_ID,P.PROD_NAME,P.PROD_CODE,PB.BATCH_NO,PB.MFG_DATE,PB.EXP_DATE
+FROM PP_PRODUCT_BATCH PB
+JOIN ADM_PRODUCTS P ON PB.PROD_ID=P.ID
+AND PB.IS_TRANSFERED='N'
+AND PB.IS_CLOSED='N'
+AND PB.ID IN (SELECT BATCH_ID FROM PP_BATCH_RECON_MST);
+
+
+--2
+SELECT PB.ID BATCH_ID,PB.PROD_ID,P.PROD_NAME,P.PROD_CODE,PB.BATCH_NO,PB.MFG_DATE,PB.EXP_DATE,p.BATCH_SIZE,SIZE_UOM,STD_QTY,STD_OUTPUT_UOM
+FROM PP_PRODUCT_BATCH PB
+JOIN ADM_PRODUCTS P ON PB.PROD_ID=P.ID
+--WHERE P.ID=:pMst_PROD_ID--107
+--and PB.BATCH_NO=:pBATCH_NO--'04522'
+WHERE PB.ID=:pBATCH_ID
+AND PB.IS_TRANSFERED='N'
+AND PB.IS_CLOSED='N';
+
+
+--3
+SELECT A.PROD_ID,B.PROD_NAME, A.DISPLAY_CODE,BASE_UOM,PROD_UOM, B.COM_PACK_SIZE, A.IS_PROMO_PROD, 
+B.PROD_TYPE_DESC,A.PROD_TYPE,A.PARENT_PROD_ID,A.PARENT_PROD_NAME, A.PARENT_DISPLAY_CODE,B.OLD_CODE
+FROM (
+SELECT ASP.PROD_ID,ASP.DISPLAY_NAME, ASP.DISPLAY_CODE, ASP.IS_PROMO_PROD, AP.PROD_TYPE, ASP.PARENT_PROD_ID, PAR.DISPLAY_NAME PARENT_PROD_NAME, PAR.DISPLAY_CODE PARENT_DISPLAY_CODE
+FROM ADM_SBU_PRODUCTS ASP JOIN ADM_PRODUCTS AP ON ASP.PROD_ID=AP.ID
+JOIN (SELECT ASP.PROD_ID,ASP.DISPLAY_NAME, ASP.DISPLAY_CODE
+      FROM ADM_SBU_PRODUCTS ASP JOIN ADM_PRODUCTS AP ON ASP.PROD_ID=AP.ID
+      WHERE SBU_ID=2 AND ASP.IS_PROMO_PROD='M' AND AP.PROD_TYPE=506 and ASP.PROD_ID=:pPROD_ID
+     ) PAR ON ASP.PARENT_PROD_ID=PAR.PROD_ID
+WHERE SBU_ID=2 
+AND AP.PROD_TYPE=501
+ORDER BY ASP.DISPLAY_NAME)A,(
+SELECT  AP.ID PRODUCT_ID, AP.PROD_NAME,ASP.BASE_UOM,FD_GET_BASE_UOM(ASP.BASE_UOM) PROD_UOM,AP.COM_UOM,AP.COM_PACK_SIZE,AP.OLD_CODE,
+        CASE WHEN ASP.IS_PROMO_PROD = 'N' THEN 'COMMERCIAL' 
+             WHEN ASP.IS_PROMO_PROD = 'Y' THEN 'SAMPLE'
+             WHEN ASP.IS_PROMO_PROD = 'E' THEN SSA.AREA_NAME END PROD_TYPE_DESC
+FROM ADM_PRODUCTS AP,  ADM_SBU_PRODUCTS ASP
+LEFT JOIN SD_SALES_AREA SSA ON SSA.ID = ASP.EXPORT_TERRITORY
+WHERE AP.ID = ASP.PROD_ID
+AND AP.PROD_TYPE = 501
+AND AP.PARENT = :pPROD_ID
+AND AP.STATUS = 1)B
+WHERE A.PROD_ID=B.PRODUCT_ID;
+
+SELECT JERP_ADM.JERP_PP_UTIL.GET_FG_PROD_LIST (:pPROD_ID)  FROM DUAL;
+
+
+--4
+
+SELECT P.ID,P.PROD_NAME,P.PROD_CODE,COM_PACK_SIZE,COM_UOM,EXP_PACK_SIZE,EXP_UOM,P.PROD_CAT,PC.CAT_NAME,P.PROD_TYPE,CE.ELEMENT_NAME
+FROM ADM_PRODUCTS P,ADM_PROD_CATEGORY PC,ADM_CODE_ELEMENTS CE
+WHERE P.PROD_CAT=PC.ID
+AND P.PROD_TYPE=CE.ID
+AND P.ID=:pPROD_ID;--1008 (COME FROM 3RD API PROD_ID);
+
+
+--5--MST DATA LIST LEFT SIDE
+SELECT TNM.ID, DISPLAY_CODE, TRANSFER_DATE, BATCH_ID,PB.BATCH_NO, MST_PROD_ID,P.PROD_NAME,TNM.TRAN_STATUS,CE.ELEMENT_NAME
+--,P.PROD_CODE,PB.MFG_DATE,PB.EXP_DATE,p.BATCH_SIZE,SIZE_UOM,STD_QTY,STD_OUTPUT_UOM,IS_PART_TRANSFER,IS_COMPLETE_TRANSFER
+FROM PP_TRANS_NOTE_MST TNM
+LEFT JOIN ADM_PRODUCTS P ON TNM.MST_PROD_ID=P.ID
+LEFT JOIN PP_PRODUCT_BATCH PB ON TNM.BATCH_ID=PB.ID
+LEFT JOIN ADM_CODE_ELEMENTS CE ON TNM.TRAN_STATUS=CE.ID;
+
+--6--MST DATA INFO PROD WISE
+SELECT TNM.ID, DISPLAY_CODE, TRANSFER_DATE, BATCH_ID,PB.BATCH_NO, MST_PROD_ID,P.PROD_NAME,
+P.PROD_CODE,PB.MFG_DATE,PB.EXP_DATE,p.BATCH_SIZE,SIZE_UOM,STD_QTY,STD_OUTPUT_UOM,IS_PART_TRANSFER,IS_COMPLETE_TRANSFER,TNM.REMARKS
+FROM PP_TRANS_NOTE_MST TNM
+LEFT JOIN ADM_PRODUCTS P ON TNM.MST_PROD_ID=P.ID
+LEFT JOIN PP_PRODUCT_BATCH PB ON TNM.BATCH_ID=PB.ID
+WHERE TNM.ID=10001;
+
+--7 DTL DATA INFO
+SELECT TND.ID,TND.TRANSFER_NOTE_ID,TND.PROD_ID,P.PROD_NAME,
+P.COM_PACK_SIZE,P.COM_UOM,P.EXP_PACK_SIZE,P.EXP_UOM,P.PROD_CAT,PC.CAT_NAME,
+TND.TOTAL_TRANSFER_QTY, TND.MASTER_CARTOON_QTY, TND.LOOSE_QTY
+FROM PP_TRANS_NOTE_DTL TND
+LEFT JOIN ADM_PRODUCTS P ON TND.PROD_ID=P.ID
+LEFT JOIN ADM_PROD_CATEGORY PC ON P.PROD_CAT=PC.ID
+WHERE TND.TRANSFER_NOTE_ID=10001
+
+
+---call
+
+DECLARE
+    vSTATUS CLOB;
+    vMst number:=null; 
+    vRECON_MST CLOB := '{ "trns_mst":[
+                                  {
+                                     "batch_id":10230,
+                                     "mst_prod_id":107,
+                                     "transfer_to":null,
+                                     "is_part_transfer":"Y",
+                                     "is_complete_transfer":null
+                                  }
+                                ]
+                                }';
+                                
+    vRECON_DTL CLOB :=  '{ "trns_dtl":[
+                                  {
+                                     "id":null,
+                                     "prod_type":null,
+                                     "prod_id":1008,
+                                     "total_transfer_qty":100,
+                                     "master_cartoon_qty":50,
+                                     "loose_qty":20
+                                  },
+                                  {
+                                     "id":null,
+                                     "prod_type":null,
+                                     "prod_id":3054,
+                                     "total_transfer_qty":200,
+                                     "master_cartoon_qty":100,
+                                     "loose_qty":50
+                                  }
+                                ] 
+                                }';  
+BEGIN
+    JERP_ADM.PD_PROD_TRANSFER_NOTE(pTRNS_MST       =>vRECON_MST,
+                                   pTRNS_DTL       =>vRECON_DTL,
+                                   pTRN_NOT_ID     =>vMst,
+                                   pUSER_ID        =>1,
+                                   pIS_SUBMITTED   =>0,
+                                   pAS_FLAG        =>0,
+                                   pSBU_ID         =>2,
+                                   pSTATUS         => vSTATUS
+                                );
+DBMS_OUTPUT.PUT_LINE(vSTATUS);
+END;

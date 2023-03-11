@@ -1,0 +1,9 @@
+
+DECLARE
+    VPOUTPUT CLOB;
+BEGIN
+JERP_APPROVER.PD_APP_THR_DATA (PAPP_THR_ID    => 1380,
+                 PUSER_ID       => 2415,
+                 POUTPUT        => VPOUTPUT);
+DBMS_OUTPUT.PUT_LINE(VPOUTPUT);
+END;

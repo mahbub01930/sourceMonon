@@ -1,0 +1,159 @@
+
+Feature Name : Process and Sub-Process Configuration
+
+Design Link : https://www.figma.com/proto/16TuROdRMPVLKMpzM7zN4s/Product-Process-Configuration?node-id=0%3A1&scaling=min-zoom&page-id=0%3A1&starting-point-node-id=1%3A2&show-proto-sidebar=1
+
+Get Query :
+API - Sub-task 1 - right panel drop-down of machine-group
+Sub-task 1 - right panel drop-down
+	
+	API 1: pp/get-machine-group
+	
+		table: ADM_CODE_ELEMENTS
+		
+		params: CODE_ID
+		
+	
+	Method: GET
+		
+		
+	get ID,ELEMENT_NAME from ADM_CODE_ELEMENTS where where CODE_ID='207' and parent='363';
+
+UX - https://github.com/mononsoft/jerp-html/tree/sadik/Process-Subprocess-config
+
+Submission Policy -
+
+after u finish given task + checking in postman in ur local pc - inform me in skype
+i'll come to ur desk & see what u've done, at that time - u'll do git commit, i'll then check it in my local pc
+after i check, i'll inform u to integrate the given API route in dev server for vue team to use it
+
+API Sub-task 2 - right panel drop-down of process
+Sub-task 2 - right panel drop-down
+	
+	API 2: pp/get-process-parent
+	
+		table: PP_PROCESS_CONFIG
+		
+		params: SBU_ID, IS_PARENT
+		
+		
+	Method: GET
+		
+		
+	get ID,PROCESS_NAME FROM PP_PROCESS_CONFIG WHERE SBU_ID=auth.user.sbu_id AND IS_PARENT='1' 	
+
+UX - https://github.com/mononsoft/jerp-html/tree/sadik/Process-Subprocess-config
+
+Submission Policy -
+
+after u finish given task + checking in postman in ur local pc - inform me in skype
+i'll come to ur desk & see what u've done, at that time - u'll do git commit, i'll then check it in my local pc
+after i check, i'll inform u to integrate the given API route in dev server for vue team to use it
+
+
+API Sub-task 3 - create process/sub-process
+
+Sub-task 3 - create process/sub-process
+	
+	API 3: pp/create-process
+	
+		table: PP_PROCESS_CONFIG
+		
+		required fields: process name & machine-group name
+		
+		
+	Method: POST
+		
+		
+	Not Null: ID,SBU_ID,PROCESS_NAME,IS_PARENT
+
+UX - https://github.com/mononsoft/jerp-html/tree/sadik/Process-Subprocess-config
+
+Submission Policy -
+
+after u finish given task + checking in postman in ur local pc - inform me in skype
+i'll come to ur desk & see what u've done, at that time - u'll do git commit, i'll then check it in my local pc
+after i check, i'll inform u to integrate the given API route in dev server for vue team to use it
+
+API Sub-task 4 - update process/sub-process
+API 3: pp/update-process
+	
+		table: PP_PROCESS_CONFIG
+		
+		required fields: process name & machine-group name
+		
+		
+	Method: PATCH
+		
+		
+	Not Null: ID,SBU_ID,PROCESS_NAME,IS_PARENT
+
+when select a process/sub-process UPDATE this select process/sub-process
+
+Submission Policy -
+
+after u finish given task + checking in postman in ur local pc - inform me in skype
+i'll come to ur desk & see what u've done, at that time - u'll do git commit, i'll then check it in my local pc
+after i check, i'll inform u to integrate the given API route in dev server for vue team to use it
+
+
+API Sub-task 5 - Left panel (list)
+task 5 - Left panel (list)
+	
+	API 4: pp/get-process-list
+	
+		table: PP_PROCESS_CONFIG
+		
+		params: CODE_ID
+		
+		
+	get ID,PROCESS_NAME FROM PP_PROCESS_CONFIG WHERE SBU_ID=auth.user.sbu_id
+
+UX - https://github.com/mononsoft/jerp-html/tree/sadik/Process-Subprocess-config
+
+Submission Policy -
+
+after u finish given task + checking in postman in ur local pc - inform me in skype
+i'll come to ur desk & see what u've done, at that time - u'll do git commit, i'll then check it in my local pc
+after i check, i'll inform u to integrate the given API route in dev server for vue team to use it
+
+API Sub-task 6 - Right panel (Detail view)
+Sub-task 6 - Right panel (Detail view): When selected any value from left panel - right side detail view will apear.
+	
+	API 5: pp/get-process-detail
+	
+		table: PP_PROCESS_CONFIG
+		
+		params: ID
+		
+	
+	get ID,SBU_ID,PROCESS_NAME,IS_PARENT,PARENT_ID,MACHINE_GROUP_ID,PROCESS_INSTRUCTION,SORT_ORDER,STATUS,CREATED_BY,CREATED_AT,UPDATED_BY,UPDATED_AT 
+FROM PP_PROCESS_CONFIG 
+WHERE ID='{Selected Left panel id}'
+
+UX - https://github.com/mononsoft/jerp-html/tree/sadik/Process-Subprocess-config
+
+Submission Policy -
+
+after u finish given task + checking in postman in ur local pc - inform me in skype
+i'll come to ur desk & see what u've done, at that time - u'll do git commit, i'll then check it in my local pc
+after i check, i'll inform u to integrate the given API route in dev server for vue team to use it
+
+
+
+DB Procedure : 
+
+Other Instructions
+API Sub-task 7: FA recommended a change which needed to make changes in create, update & get_process_list controller method
+For API to do:
+
+add validation for 'is_core_activity' as 'Y' or 'N' - default is 'Y'
+make changes in create & update controller method.
+in 'get_process_list' controller method add two more fields in return data set.
+
+
+FA: 
+
+Testing is done. all are ok. Two thing is needed:
+In left panel, list box, Process and sub-process should be present in different color, so that user can recognize who is the process and who is the sub process
+New Column Added into PP_PROCESS_CONFIG table named IS_CORE_ACTIVITY. It will contain Y/N value, By default it will be "Y"

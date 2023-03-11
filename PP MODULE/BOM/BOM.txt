@@ -1,0 +1,485 @@
+API List for BOM (Bill of Material)
+--------------------------------------------------------------------------------------------------------
+
+
+Feature Name : BOM (Bill of Material)
+
+Design Link : https://www.figma.com/proto/bbY0JUjLuYL917XgoCzabe/BOM---Bill-of-Materials?node-id=83%3A7273&scaling=min-zoom&page-id=0%3A1&starting-point-node-id=83%3A7273
+
+Description : This will create a BOM creation page as per design. Some materials of any BOM may have Sub-BOM data, 
+	which will create in another set of BOM data with new ID, which will be linked up with the old BOM id as parent. This can be maintained by api-end or procedure end
+
+From : WEB 
+
+Users : PD (PRODUCT DEVELOPMENT) USERS AND PD MANAGERS.
+
+Constraint:
+
+User must be logged in
+
+User info available
+
+Check auth token for every request
+
+Check SBU_ID
+
+
+Tables/Data Source:
+
+PP_BOM_MST , PP_BOM_DTL, PP_BOM_SUB
+
+---------------------------------------------------------
+
+LIST OF API
+
+1. BOM Left Panel(list view)-LANDING MODE
+API NAME : http://203.188.245.58:8889/api/pp/get-bom-mst-list
+API TYPE : GET
+
+Get Query :
+---PROD LIST-----
+SELECT BM.BLK_PROD_ID, AP.PROD_NAME
+  FROM PP_BOM_MST BM 
+  JOIN ADM_PRODUCTS AP ON BM.BLK_PROD_ID = AP.ID
+ GROUP BY BM.BLK_PROD_ID, AP.PROD_NAME;
+
+----------
+
+-1.1--PROD WISE BOM LIST---
+ 
+ SELECT BM.ID BOM_ID,BM.DISPLAY_CODE,BM.BATCH_SIZE,BM.TRAN_STATUS,ACE.ELEMENT_NAME,BM.IS_ACTIVE,BM.STATUS
+   FROM PP_BOM_MST BM 
+   JOIN ADM_CODE_ELEMENTS ACE ON ACE.ID = BM.TRAN_STATUS
+  WHERE BM.BLK_PROD_ID = :pPROD_ID; --4020
+
+--SEARCH BOX FILTER WILL WORK ON TRAN_STATUS COLUMN
+
+2. BOM MASTER DROPDOWN DATA
+--"BOM TYPE" DROPDOWN
+API NAME : http://203.188.245.58:8889/api/pp/bom-type-n-uom-list/{code}
+API TYPE : GET
+
+##QUERY
+
+SELECT json_arrayagg(JSON_OBJECT(id,element_name)) DRP1
+FROM
+(SELECT ID,ELEMENT_NAME 
+    FROM ADM_CODE_ELEMENTS WHERE CODE_KEY='BOM_TYPE'
+)
+
+
+--"BULK PRODUCT" DROPDOWN
+API NAME : http://203.188.245.58:8889/api/pp/bulk-prod-list
+API TYPE : GET
+
+##QUERY
+
+SELECT json_arrayagg(JSON_OBJECT(id,prod_name,base_uom,base_uom_name,prod_type_name)) DRP1
+FROM
+(
+SELECT AP.ID,AP.PROD_NAME,ASP.BASE_UOM,ACEE.ELEMENT_NAME AS BASE_UOM_NAME,AC.ELEMENT_NAME AS PROD_TYPE_NAME
+    FROM ADM_PRODUCTS AP
+    JOIN ADM_SBU_PRODUCTS ASP ON AP.ID=ASP.PROD_ID
+    LEFT JOIN ADM_CODE_ELEMENTS ACEE ON ASP.BASE_UOM=ACEE.ID
+    JOIN ADM_CODE_ELEMENTS AC ON AP.PROD_TYPE=AC.ID
+    WHERE AC.ID=514 AND ASP.SBU_ID = :SBU_ID
+)
+
+--"SFG" DROPDOWN
+API NAME : http://203.188.245.58:8889/api/pp/sfg-list
+API TYPE : GET
+##QUERY
+
+SELECT json_arrayagg(JSON_OBJECT(id,prod_name,base_uom,base_uom_name,prod_type_name)) DRP1
+FROM
+(
+SELECT AP.ID,AP.PROD_NAME,ASP.BASE_UOM,ACEE.ELEMENT_NAME AS BASE_UOM_NAME,AC.ELEMENT_NAME AS PROD_TYPE_NAME
+    FROM ADM_PRODUCTS AP
+    JOIN ADM_SBU_PRODUCTS ASP ON AP.ID=ASP.PROD_ID
+    LEFT JOIN ADM_CODE_ELEMENTS ACEE ON ASP.BASE_UOM=ACEE.ID
+    JOIN ADM_CODE_ELEMENTS AC ON AP.PROD_TYPE=AC.ID
+    WHERE AC.ID=504 AND ASP.SBU_ID = :SBU_ID
+)
+
+
+--"MASTER PRODUCT" DROPDOWN
+API NAME : http://203.188.245.58:8889/api/pp/master-product-list
+API TYPE : GET
+##QUERY
+
+SELECT json_arrayagg(JSON_OBJECT(id,prod_name,base_uom,base_uom_name,prod_type_name)) DRP1
+FROM
+(
+SELECT AP.ID,AP.PROD_NAME,ASP.BASE_UOM,ACEE.ELEMENT_NAME AS BASE_UOM_NAME,AC.ELEMENT_NAME AS PROD_TYPE_NAME
+    FROM ADM_PRODUCTS AP
+    JOIN ADM_SBU_PRODUCTS ASP ON AP.ID=ASP.PROD_ID
+    LEFT JOIN ADM_CODE_ELEMENTS ACEE ON ASP.BASE_UOM=ACEE.ID
+    JOIN ADM_CODE_ELEMENTS AC ON AP.PROD_TYPE=AC.ID
+    WHERE AC.ID=506 AND ASP.SBU_ID = :SBU_ID
+)
+
+
+
+
+--"API FILLER CODE" DROPDOWN
+API NAME : http://203.188.245.58:8889/api/pp/api-filler-list
+API TYPE : GET
+##QUERY
+
+SELECT json_arrayagg(JSON_OBJECT(id,prod_name,base_uom,base_uom_name,prod_type_name)) DRP1
+FROM
+(
+SELECT AP.ID,AP.PROD_NAME,ASP.BASE_UOM,ACEE.ELEMENT_NAME AS BASE_UOM_NAME,AC.ELEMENT_NAME AS PROD_TYPE_NAME
+    FROM ADM_PRODUCTS AP
+    JOIN ADM_SBU_PRODUCTS ASP ON AP.ID=ASP.PROD_ID
+    LEFT JOIN ADM_CODE_ELEMENTS ACEE ON ASP.BASE_UOM=ACEE.ID
+    JOIN ADM_CODE_ELEMENTS AC ON AP.PROD_TYPE=AC.ID
+    WHERE AC.ID=502 AND ASP.SBU_ID = :SBU_ID
+)
+
+
+--"UOM" DROPDOWN
+API NAME : http://203.188.245.58:8889/api/pp/bom-type-n-uom-list/{code}
+API TYPE : GET
+##QUERY
+
+SELECT json_arrayagg(JSON_OBJECT(id,element_name)) DRP1
+FROM
+(SELECT ID,ELEMENT_NAME 
+    FROM ADM_CODE_ELEMENTS WHERE CODE_KEY='PRODUCT_UOM'
+)
+
+Submission Policy -
+
+after u finish given task + checking in postman in ur local pc - inform me in skype
+i'll come to ur desk & see what u've done, at that time - u'll do git commit & integrate the given API route in dev server for vue team to use it
+
+
+
+3. AFTER LEFT PANEL ID SELECTION (RIGHT PANEL-BOM-MASTER TAB DATA)
+API NAME : http://203.188.245.58:8889/api/pp/get-bom-master-data-by-id/{id}
+API TYPE : GET
+##QUERY
+
+SELECT json_arrayagg(JSON_OBJECT(id,bom_type,display_code,sbu_id,blk_prod_id,sfg_prod_id,mat_prod_id,apply_from_date,batch_size,batch_uom,batch_weight,batch_weight_uom
+								,theo_batch_output,theo_batch_uom,std_batch_output,std_batch_uom,api_filler_prod_id,api_filler_weight,api_filler_uom,is_active,is_std_bom,app_thr_id,approved_by,approved_date)) QRY
+FROM
+(
+SELECT ID, BOM_TYPE, DISPLAY_CODE, SBU_ID, BLK_PROD_ID, SFG_PROD_ID, MAT_PROD_ID, APPLY_FROM_DATE, BATCH_SIZE, BATCH_UOM, BATCH_WEIGHT, BATCH_WEIGHT_UOM
+,THEO_BATCH_OUTPUT, THEO_BATCH_UOM, STD_BATCH_OUTPUT, STD_BATCH_UOM, API_FILLER_PROD_ID, API_FILLER_WEIGHT, API_FILLER_UOM, IS_ACTIVE, IS_STD_BOM
+,APP_THR_ID, APPROVED_BY, APPROVED_DATE 
+FROM PP_BOM_MST WHERE ID = :BOM_ID
+)
+
+
+
+4. AFTER LEFT PANEL ID SELECTION (RIGHT PANEL-BMR TAB DATA)
+API NAME : http://203.188.245.58:8889/api/pp/get-bmr-data/{bom_id}
+API TYPE : GET
+
+##QUERY
+
+SELECT json_arrayagg(JSON_OBJECT(id,bom_id,mat_prod_id,batch_qty,is_mandatory,is_must_for_qualify,is_sub_bom)) QRY
+FROM
+(
+SELECT ID, BOM_ID, MAT_PROD_ID, BATCH_QTY, UOM, IS_MANDATORY, IS_MUST_FOR_QUALIFY,IS_SUB_BOM 
+FROM PP_BOM_DTL WHERE BOM_ID = :BOM_ID AND IS_BMR= 'Y'
+)
+
+
+5. AFTER LEFT PANEL ID SELECTION (RIGHT PANEL-BPR TAB DATA)
+API NAME : http://203.188.245.58:8889/api/pp/get-bpr-data/{bom_id}
+API TYPE : GET
+
+##QUERY
+
+SELECT json_arrayagg(JSON_OBJECT(id,bom_id,mat_prod_id,batch_qty,is_mandatory,is_must_for_qualify,is_sub_bom)) QRY
+FROM
+(
+SELECT ID, BOM_ID, MAT_PROD_ID, BATCH_QTY, UOM, IS_MANDATORY, IS_MUST_FOR_QUALIFY,IS_SUB_BOM 
+FROM PP_BOM_DTL WHERE BOM_ID = :BOM_ID AND IS_BMR= 'N'
+)
+
+6. AFTER CLICK ON + ICON in BMR & BPR TAB: SUB-BOM MODAL PANEL DATA QUERY
+API NAME : http://203.188.245.58:8889/api/pp/get-sub-bom-data
+API TYPE : GET
+
+ --"SUB-BOM MODAL" LIST
+
+##QUERY
+
+SELECT json_arrayagg(JSON_OBJECT(id,display_code,blk_prod_id,prod_name)) DRP1
+FROM
+(SELECT BM.ID, DISPLAY_CODE,BLK_PROD_ID,AP.PROD_NAME 
+    FROM PP_BOM_MST BM JOIN ADM_PRODUCTS AP ON BM.BLK_PROD_ID=AP.ID WHERE BOM_TYPE=7602 --SUB-BOM
+)
+
+
+7. BOM MATERIAL MODAL DATA FOR BMR & BPR
+For BRM -
+
+--"MATERIAL LIST" DROPDOWN
+API NAME : http://203.188.245.58:8889/api/pp/get-rm-list
+API TYPE : GET
+
+##QUERY
+
+SELECT json_arrayagg(JSON_OBJECT(id,prod_name,base_uom,base_uom_name,prod_type_name)) DRP1
+FROM
+(
+SELECT AP.ID,AP.PROD_NAME,ASP.BASE_UOM,ACEE.ELEMENT_NAME AS BASE_UOM_NAME,AC.ELEMENT_NAME AS PROD_TYPE_NAME
+    FROM ADM_PRODUCTS AP
+    JOIN ADM_SBU_PRODUCTS ASP ON AP.ID=ASP.PROD_ID
+    LEFT JOIN ADM_CODE_ELEMENTS ACEE ON ASP.BASE_UOM=ACEE.ID
+    JOIN ADM_CODE_ELEMENTS AC ON AP.PROD_TYPE=AC.ID
+    WHERE AC.ID  = 502 AND ASP.SBU_ID = :SBU_ID
+)
+
+
+For BPR -
+
+--"MATERIAL LIST" DROPDOWN
+API NAME : http://203.188.245.58:8889/api/pp/get-pm-list
+API TYPE : GET
+
+##QUERY
+
+SELECT json_arrayagg(JSON_OBJECT(id,prod_name,base_uom,base_uom_name,prod_type_name)) DRP1
+FROM
+(
+SELECT AP.ID,AP.PROD_NAME,ASP.BASE_UOM,ACEE.ELEMENT_NAME AS BASE_UOM_NAME,AC.ELEMENT_NAME AS PROD_TYPE_NAME
+    FROM ADM_PRODUCTS AP
+    JOIN ADM_SBU_PRODUCTS ASP ON AP.ID=ASP.PROD_ID
+    LEFT JOIN ADM_CODE_ELEMENTS ACEE ON ASP.BASE_UOM=ACEE.ID
+    JOIN ADM_CODE_ELEMENTS AC ON AP.PROD_TYPE=AC.ID
+    WHERE AC.ID = 503 AND ASP.SBU_ID = :SBU_ID
+)
+
+
+
+DB Procedure : 
+8. CREATE-UPDATE, DRAFT, SUBMIT - BOM & Sub-BOM
+API NAME : http://203.188.245.58:8889/api/pp/create-update-pp-bom
+API TYPE : GET
+
+ Procedure call for - BOM, Sub-BOM Create, Update, Draft & Submit
+
+JERP_PP_UTIL.PP_BOM
+
+(   
+    pBOM_MST          IN CLOB, 
+    pBOM_BMR          IN CLOB, 
+    pBOM_BPR          IN CLOB,
+    pBOM_SUB          IN CLOB, 
+    pUSER_ID          IN NUMBER, 
+    pIS_SUBMITTED     IN NUMBER, 
+    pBOM_ID           IN OUT NUMBER, 
+    pSTATUS           OUT CLOB) 
+
+Parameters :
+
+A. pBOM_MST (JSON Array)
+
+Header = pp_bom_mst
+
+Object
+
+bom_type              number not null,
+sbu_id               number not null,
+blk_prod_id            number not null,
+sfg_prod_id            number,
+mat_prod_id            number,
+batch_size            number,
+batch_uom            number,
+batch_weight            number,
+batch_weight_uom            number,
+theo_batch_output            number,
+theo_batch_uom            number,
+std_batch_output            number,
+std_batch_uom            number,
+api_filler_prod_id            number,
+api_filler_weight            number,
+api_filler_uom            number,
+
+unit_volume               number,
+volume_uom               number,
+unit_weight               number,
+weight_uom               number,
+
+apply_from_date         varchar2 format dd-mm-yyyy not null,
+is_active             varchar2,
+is_std_bom             varchar2,
+tran_status             varchar2
+
+
+B. pBOM_BMR (JSON Array)
+
+Header = bom_bmr
+
+Object
+
+id                        number,
+mat_prod_id               number not null,
+batch_qty                 number not null,
+uom                       number not null,
+is_mandatory              varchar2 ,
+is_must_for_qualify       varchar2 ,
+is_sub_bom                varchar2 ,
+
+
+C. pBOM_BPR (JSON Array)
+
+Header = bom_bpr
+
+Object
+
+id                          number,
+mat_prod_id                 number not null,
+batch_qty                   number not null,
+uom                         number not null,
+is_mandatory                varchar2,
+is_must_for_qualify         varchar2,
+is_sub_bom                  varchar2
+
+D. pBOM_SUB (JSON Array)
+
+Header = bom_sub
+
+Object
+
+id                          number,
+bom_id                 number not null,
+bom_dtl_id                   number not null
+
+
+E. pUSER_ID (Number)
+
+pUSER_ID number not null auth.user_id
+
+F. pIS_SUBMITTED (Number)
+
+pIS_SUBMITTED number not null (0 for draft, 1 for submit)I
+
+G. pBOM_ID (Number)
+
+pBOM_ID number (in-out parameter)
+
+H. pSTATUS (Out CLOB)
+
+pSTATUS CLOB data return DB status against input data.
+
+Submission Policy -
+
+after u finish given task + checking in postman in ur local pc - inform me in skype
+i'll come to ur desk & see what u've done, at that time - u'll do git commit & integrate the given API route in dev server for vue team to use it
+
+
+Other Instructions
+
+
+unit_volume               number,
+
+volume_uom               number,
+
+unit_weight               number,
+
+weight_uom               number,
+
+pls change create & update method accordingly         
+
+
+
+
+
+
+
+5: integrate API 6. AFTER CLICK ON + ICON in BMR & BPR TAB: SUB-BOM MODAL PANEL DATA QUERY
+
+URL = http://203.188.245.58:8889/api/pp/get-sub-bom-data
+Method = GET
+
+
+
+6: integrate API 8. CREATE-UPDATE, DRAFT, SUBMIT - BOM & Sub-BOM
+URL = http://203.188.245.58:8889/api/pp/create-update-pp-bom
+Method = POST
+
+Parameters
+-------------------------------------------------
+1. pp_bom_mst
+{
+   "pp_bom_mst":[
+      {
+         "bom_type":502,
+         "sbu_id":2,
+         "blk_prod_id":1001,
+         "sfg_prod_id":1001,
+         "mat_prod_id":null,
+         "batch_size":200000,
+         "batch_uom":532,
+         "apply_from_date":"2022-04-28",
+         "batch_weight":30,
+         "batch_weight_uom":530,
+         "theo_batch_output":198000,
+         "theo_batch_uom":532,
+         "std_batch_output":192500,
+         "std_batch_uom":532,
+         "api_filler_prod_id":1002,
+         "api_filler_weight":10,
+         "api_filler_uom":532,
+         "is_active":"Y",
+         "is_std_bom":"Y"
+      }
+   ]
+}
+
+2. bom_bmr
+{
+   "bom_bmr":[
+      {
+         "id":null,
+         "mat_prod_id":1006,
+         "batch_qty":12.34,
+         "uom":532,
+         "is_mandatory":"Y",
+         "is_must_for_qualify":"Y",
+         "is_sub_bom":"N"
+      }
+   ]
+}
+
+3. bom_bpr
+{
+   "bom_bpr":[
+      {
+         "id":null,
+         "mat_prod_id":1010,
+         "batch_qty":4356,
+         "uom":532,
+         "is_mandatory":"Y",
+         "is_must_for_qualify":"N",
+         "is_sub_bom":"N"
+      }
+   ]
+}
+
+4. bom_sub
+{
+   "bom_sub":[
+      {
+         "id":null,
+         "bom_id":1010,
+         "bom_dtl_id":1234
+      }
+   ]
+}
+
+5. is_submitted [use 0 for draft] [use 1 for submit/save]
+6. bom_id [use 0 in case of insert] [use (given/exist bom_id) in case of update]
+
+
+
+
+
+http://203.188.245.58:8889/api/pp/bulk-prod-list-sub-bom
+http://203.188.245.58:8889/api/pp/get-selected-sub-bom-data/{mat_prod_id}

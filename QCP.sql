@@ -1,0 +1,89 @@
+----QC PARAMETER SETUP TABLES---------------
+
+SELECT * FROM PP_QC_PARAM;
+
+SELECT * FROM PP_QC_PARAM_SPEC;
+
+SELECT * FROM PP_QC_PARAM_PROCESS;
+
+SELECT * FROM PP_PROC_TYPE_PROCESS;
+
+SELECT * FROM ADM_ATTRIBUTES_TAB_DATA;
+
+-------QC MASTER DATA INFO-------
+
+SELECT QP.ID PARAM_ID, QP.PROD_ID, AP.PROD_NAME, QP.SPEC_REF_NO, QP.METHOD_REF_NO, QP.CAS_NO, QP.SYNONYMS, QP.SAFETY_PRE_CAUTION, QP.SHELF_LIFE, ---BASIC INFO
+QP.REFERENCE_NO, QP.DAR_NO, QP.DESCRIPTION, QP.SHAPE_SIZE, QP.COLOR_SMELL, QP.TRAN_STATUS, ACE.ELEMENT_NAME TRAN_STATUS_NAME, QP.SUPERSEDES, QP.MOLECULAR_FORMULA, QP.MOLECULAR_WEIGHT, QP.EFFECTIVE_DATE, --BASIC INFO 
+QP.ISSUE_DATE, QP.REVIEW_DATE, QP.VERSION_NO, QP.CAUSE_FOR_VERSION, --REVISION INFO
+QP.PACK_SIZE, QP.PACKING_MODE, QP.CONTAINER, QP.STORAGE_CONDITION, QP.DOC_COM_SUPP, QP.DOC_NEW_SOURCE, QP.LABEL_INFO, --PACKAGING INFO
+QP.STATUS
+FROM PP_QC_PARAM QP
+JOIN ADM_PRODUCTS AP ON QP.PROD_ID=AP.ID
+LEFT JOIN ADM_CODE_ELEMENTS ACE ON QP.TRAN_STATUS=ACE.ID;
+
+
+-----QC SPEC DETAILS INFO-FOR RAW/PACK MATERIAL----------
+
+SELECT QP.ID PARAM_ID, QP.PROD_ID, AP.PROD_NAME, QS.VERSION_NO, QS.ID SPEC_ID, QS.TEST_SERIAL_NO, QS.TEST_ID, ACE.ELEMENT_NAME TEST_NAME, 
+QS.SPECIFICATION, QS.TEST_TYPE, AC.ELEMENT_NAME TEST_TYPE_NAME, QS.REFERENCE
+FROM PP_QC_PARAM QP
+JOIN ADM_PRODUCTS AP ON QP.PROD_ID=AP.ID
+JOIN PP_QC_PARAM_SPEC QS ON QP.ID= QS.QC_PARAM_ID
+LEFT JOIN ADM_CODE_ELEMENTS ACE ON QS.TEST_ID=ACE.ID
+LEFT JOIN ADM_CODE_ELEMENTS AC ON QS.TEST_TYPE=AC.ID
+WHERE QS.QC_PARAM_PROCESS_ID IS NULL
+AND QP.ID = :P_QC_PARAM_ID;
+
+
+-----QC SPEC DETAILS INFO-FOR WIP MATERIALS------------
+
+SELECT QP.ID PARAM_ID, QP.PROD_ID, AP.PROD_NAME, QS.VERSION_NO, PP.WIP_STAGE_ID, AC1.ELEMENT_NAME WIP_STAGE_NAME, PP.PROCESS_ID, PC.PROCESS_NAME, 
+PP.SUB_PROCESS_ID, PC1.PROCESS_NAME SUB_PROCESS_NAME, PP.IS_IPQC ,QS.ID SPEC_ID, QS.TEST_SERIAL_NO, QS.TEST_ID, ACE.ELEMENT_NAME TEST_NAME, 
+QS.SPECIFICATION, QS.TEST_TYPE, AC.ELEMENT_NAME TEST_TYPE_NAME, QS.REFERENCE
+FROM PP_QC_PARAM QP
+JOIN ADM_PRODUCTS AP ON QP.PROD_ID=AP.ID
+JOIN PP_QC_PARAM_PROCESS PP ON QP.ID=PP.QC_PARAM_ID 
+JOIN PP_QC_PARAM_SPEC QS ON QP.ID= QS.QC_PARAM_ID AND PP.ID=QS.QC_PARAM_PROCESS_ID
+LEFT JOIN ADM_CODE_ELEMENTS ACE ON QS.TEST_ID=ACE.ID
+LEFT JOIN ADM_CODE_ELEMENTS AC ON QS.TEST_TYPE=AC.ID
+LEFT JOIN ADM_CODE_ELEMENTS AC1 ON PP.WIP_STAGE_ID=AC1.ID
+LEFT JOIN PP_PROCESS_CONFIG PC ON PP.PROCESS_ID=PC.ID
+LEFT JOIN PP_PROCESS_CONFIG PC1 ON PP.SUB_PROCESS_ID=PC1.ID
+WHERE QS.QC_PARAM_PROCESS_ID IS NOT NULL;
+
+------QC SPEC ATTRIBUTE DETAILS DATA INFO-FOR EACH SPEC-------------
+
+SELECT ATT.ID ATTRIBUTE_ID, AT.ATTRIBUTE_NAME, ATT.DISPLAY_NAME, ATD.DATA_VALUE, ATD.ID, QS.ID QC_SPEC_ID, QS.TEST_ID, ACE.ELEMENT_NAME TEST_NAME
+FROM ADM_ATTRIBUTES_TAB ATT
+JOIN ADM_ATTRIBUTES AT ON ATT.ATTRIBUTE_ID=AT.ID
+JOIN ADM_ATTRIBUTES_TAB_DATA ATD ON ATT.ID=ATD.ATAB_ID
+JOIN PP_QC_PARAM_SPEC QS ON ATD.DATA_ROW_ID=QS.ID
+JOIN ADM_CODE_ELEMENTS ACE ON QS.TEST_ID=ACE.ID
+WHERE ATT.TABLE_NAME='PP_QC_PARAM_SPEC'
+
+--------QC---IPQC STAGE DATA FOR SPECIFIC PRODUCT--------------
+
+declare 
+pQC_DATA clob := null;
+pSTATUS clob;
+begin
+ JERP_PP_UTIL.PP_QC_IPQC_STAGE_DATA (200, pQC_DATA, pSTATUS);
+ dbms_output.put_line(pQC_DATA);
+ dbms_output.put_line(pSTATUS);
+end;
+
+---
+/*
+{ "label_info":[
+                                                                                          {
+                                                                                             "manufacturer":null,
+                                                                                             "batch_no":null,
+                                                                                             "gross_weight" : null,
+                                                                                             "net_weight" : null,
+                                                                                             "manufacture_date": null,
+                                                                                             "exp_date" : null,
+                                                                                             "storage_condition": null
+                                                                                             
+                                                                                          }
+                                                                                        ]
+                                                                                        }
